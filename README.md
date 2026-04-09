@@ -3,7 +3,7 @@
 
 Panel Project est un centre d'administration et d'informations pour les missions de JumpFreighter (JF).  
 Il permet de suivre les commandes internes en cours et prépare une partie publique pour plus tard, façon Redfrog.  
-Lien du panel public : [https://panel.tslc.ovh/](https://panel.tslc.ovh/)
+Lien du panel public : https://panel.tslc.ovh
 
 ## Fonctionnalités
 
