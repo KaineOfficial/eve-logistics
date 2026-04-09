@@ -1,18 +1,30 @@
 <nav class="navbar">
   <div class="navbar-left">
-    <a href="/" class="nav-btn">Accueil</a>
+    <a href="/" class="nav-btn"><%= t.nav.home %></a>
     <% if (character && character.allianceId == 99014321) { %>
-      <a href="/freight" class="nav-btn">Fret</a>
-      <% if (character.allianceId == 99014321) { %>
-        <a href="/hauler" class="nav-btn hauler">Hauler</a>
-      <% } %>
+      <a href="/freight" class="nav-btn"><%= t.nav.freight %></a>
+      <a href="/hauler" class="nav-btn hauler"><%= t.nav.hauler %></a>
     <% } %>
   </div>
   <div class="navbar-right">
     <% if (character) { %>
-      <a href="/logout" class="nav-btn logout">Déconnexion</a>
+      <a href="/logout" class="nav-btn logout"><%= t.nav.logout %></a>
     <% } else { %>
-      <a href="/login" class="nav-btn">Se connecter</a>
+      <a href="/login" class="nav-btn"><%= t.nav.login %></a>
     <% } %>
   </div>
 </nav>
+
+<!-- Bouton langue flottant draggable -->
+<div id="lang-switcher" class="lang-switcher">
+  <button class="lang-btn" id="lang-toggle">
+    <%= lang === 'fr' ? '🇫🇷' : lang === 'es' ? '🇪🇸' : '🇬🇧' %>
+    <%= lang.toUpperCase() %>
+  </button>
+  <div class="lang-dropdown" id="lang-dropdown">
+    <a href="/lang/en" class="lang-option <%= lang === 'en' ? 'active' : '' %>">🇬🇧 English</a>
+    <a href="/lang/fr" class="lang-option <%= lang === 'fr' ? 'active' : '' %>">🇫🇷 Français</a>
+    <a href="/lang/es" class="lang-option <%= lang === 'es' ? 'active' : '' %>">🇪🇸 Español</a>
+  </div>
+</div>
+<script src="/lang.js"></script>

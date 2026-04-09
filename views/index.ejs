@@ -1,19 +1,19 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<%= lang %>">
 <head>
   <meta charset="UTF-8">
-  <title>Panel EVE Online</title>
+  <title><%= t.index.title %></title>
   <link rel="stylesheet" href="/style.css">
 </head>
-
 <body>
-  <div class="box">
-    <h1>Panel EVE Online</h1>
-    <p>Connexion requise pour accéder au dashboard</p>
+  <%- include('partials/navbar') %>
 
-    <a href="/login">Se connecter avec EVE Online</a>
+  <div class="box">
+    <h1><%= t.index.title %></h1>
+    <p><%= t.index.subtitle %></p>
+    <a href="/login"><%= t.index.loginBtn %></a>
   </div>
 
-<%- include('partials/footer') %>
+  <%- include('partials/footer') %>
 </body>
 </html>

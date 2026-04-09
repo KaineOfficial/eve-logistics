@@ -12,7 +12,7 @@
     "start": "node server.js"
   },
   "name": "eve-app",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "server.js",
   "keywords": [],
   "author": "",

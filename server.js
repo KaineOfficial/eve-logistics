@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const path = require('path');
 const { version } = require('./package.json');
 const db = require('./db');
+const locales = require('./locales');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,6 +16,14 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: false }));
+
+// Langue (session, défaut anglais)
+app.use((req, res, next) => {
+  const lang = req.session.lang || 'en';
+  res.locals.t    = locales[lang] || locales.en;
+  res.locals.lang = lang;
+  next();
+});
 
 app.use(session({
   store: new FileStore({ path: './sessions', retries: 1 }),
@@ -285,6 +294,14 @@ app.post('/hauler/:id/status', requireHauler, (req, res) => {
   ).run(status, req.session.character.name, req.params.id);
 
   res.redirect('/hauler');
+});
+
+// LANGUE
+app.get('/lang/:code', (req, res) => {
+  if (['en', 'fr', 'es'].includes(req.params.code)) {
+    req.session.lang = req.params.code;
+  }
+  res.redirect(req.headers.referer || '/');
 });
 
 // LOGOUT

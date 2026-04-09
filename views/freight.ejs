@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<%= lang %>">
 <head>
   <meta charset="UTF-8">
-  <title>Fret — TSLC</title>
+  <title><%= t.freight.title %> — TSLC</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -10,29 +10,25 @@
 
   <div class="container wide">
     <div class="page-header">
-      <h1>Demandes de transport</h1>
-      <% if (character) { %>
-        <a href="/freight/new" class="nav-btn refresh">+ Nouvelle demande</a>
-      <% } else { %>
-        <a href="/login" class="nav-btn">Se connecter pour soumettre</a>
-      <% } %>
+      <h1><%= t.freight.title %></h1>
+      <a href="/freight/new" class="nav-btn refresh"><%= t.freight.newBtn %></a>
     </div>
 
     <% if (requests.length === 0) { %>
-      <p class="no-contracts">Aucune demande de transport pour le moment.</p>
+      <p class="no-contracts"><%= t.freight.noRequests %></p>
     <% } else { %>
       <table class="contracts-table">
         <thead>
           <tr>
-            <th>#</th>
-            <th>Demandeur</th>
-            <th>Départ</th>
-            <th>Arrivée</th>
-            <th>Volume (m³)</th>
-            <th>Collateral</th>
-            <th>Récompense</th>
-            <th>Statut</th>
-            <th>Hauler</th>
+            <th><%= t.freight.colId %></th>
+            <th><%= t.freight.colRequester %></th>
+            <th><%= t.freight.colFrom %></th>
+            <th><%= t.freight.colTo %></th>
+            <th><%= t.freight.colVolume %></th>
+            <th><%= t.freight.colCollateral %></th>
+            <th><%= t.freight.colReward %></th>
+            <th><%= t.freight.colStatus %></th>
+            <th><%= t.freight.colHauler %></th>
           </tr>
         </thead>
         <tbody>
@@ -42,10 +38,10 @@
               <td><%= r.char_name %></td>
               <td><%= r.pickup %></td>
               <td><%= r.destination %></td>
-              <td><%= r.volume.toLocaleString('fr-FR') %></td>
-              <td><%= r.collateral.toLocaleString('fr-FR') %> ISK</td>
-              <td><%= r.reward ? r.reward.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
-              <td><span class="status-badge status-<%= r.status %>"><%= statusLabels[r.status] %></span></td>
+              <td><%= r.volume.toLocaleString() %></td>
+              <td><%= r.collateral.toLocaleString() %> ISK</td>
+              <td><%= r.reward ? r.reward.toLocaleString() + ' ISK' : '—' %></td>
+              <td><span class="status-badge status-<%= r.status %>"><%= t.status[r.status] %></span></td>
               <td><%= r.hauler_name || '—' %></td>
             </tr>
           <% }) %>
