@@ -30,6 +30,73 @@
         <td><%= character.corporation %></td>
       </tr>
     </table>
+
+    <!-- Contrats en attente -->
+    <h2 class="contracts-title">
+      Contrats en attente
+      <span class="badge badge-outstanding"><%= contracts.outstanding.length %></span>
+    </h2>
+
+    <% if (contracts.outstanding.length === 0) { %>
+      <p class="no-contracts">Aucun contrat en attente.</p>
+    <% } else { %>
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th>Titre</th>
+            <th>Type</th>
+            <th>Prix</th>
+            <th>Récompense</th>
+            <th>Expiration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% contracts.outstanding.forEach(c => { %>
+            <tr>
+              <td><%= c.title || '(sans titre)' %></td>
+              <td><%= c.type %></td>
+              <td><%= c.price != null ? c.price.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
+              <td><%= c.reward != null ? c.reward.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
+              <td><%= new Date(c.date_expired).toLocaleDateString('fr-FR') %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+
+    <!-- Contrats en cours -->
+    <h2 class="contracts-title">
+      Contrats en cours
+      <span class="badge badge-inprogress"><%= contracts.inProgress.length %></span>
+    </h2>
+
+    <% if (contracts.inProgress.length === 0) { %>
+      <p class="no-contracts">Aucun contrat en cours.</p>
+    <% } else { %>
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th>Titre</th>
+            <th>Type</th>
+            <th>Prix</th>
+            <th>Récompense</th>
+            <th>Expiration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% contracts.inProgress.forEach(c => { %>
+            <tr>
+              <td><%= c.title || '(sans titre)' %></td>
+              <td><%= c.type %></td>
+              <td><%= c.price != null ? c.price.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
+              <td><%= c.reward != null ? c.reward.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
+              <td><%= new Date(c.date_expired).toLocaleDateString('fr-FR') %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+
   </div>
 
 <%- include('partials/footer') %>

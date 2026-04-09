@@ -28,7 +28,11 @@ const scopes = process.env.SCOPES || 'publicData';
 // HOME
 app.get('/', (req, res) => {
   if (req.session.character) {
-    res.render('dashboard', { character: req.session.character, version });
+    res.render('dashboard', {
+      character: req.session.character,
+      contracts: req.session.contracts || { outstanding: [], inProgress: [] },
+      version
+    });
   } else {
     res.render('index', { version });
   }
@@ -83,15 +87,26 @@ app.get('/callback', async (req, res) => {
       axios.get(`https://esi.evetech.net/latest/characters/${characterId}/portrait/`, authHeaders)
     ]);
 
-    const corpRes = await axios.get(
-      `https://esi.evetech.net/latest/corporations/${characterRes.data.corporation_id}/`
-    );
+    const corporationId = characterRes.data.corporation_id;
+
+    const [corpRes, contractsRes] = await Promise.all([
+      axios.get(`https://esi.evetech.net/latest/corporations/${corporationId}/`),
+      axios.get(`https://esi.evetech.net/latest/corporations/${corporationId}/contracts/`, authHeaders)
+        .catch(() => null)
+    ]);
+
+    const allContracts = contractsRes?.data || [];
 
     req.session.character = {
       id: characterId,
       name: characterName,
       corporation: corpRes.data.name,
       portrait: portraitRes.data.px64x64
+    };
+
+    req.session.contracts = {
+      outstanding: allContracts.filter(c => c.status === 'outstanding'),
+      inProgress:  allContracts.filter(c => c.status === 'in_progress')
     };
 
     res.redirect('/');

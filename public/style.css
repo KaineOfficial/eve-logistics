@@ -43,9 +43,9 @@ body {
   margin: 0;
   padding: 0;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
   flex-direction: column;
 }
 
@@ -54,6 +54,7 @@ footer {
   text-align: center;
   font-size: 0.9em;
   color: #94a3b8;
+  padding-bottom: 20px;
 }
 
 /* Styles pour index.ejs */
@@ -63,6 +64,7 @@ footer {
   border-radius: 10px;
   text-align: center;
   box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  margin: auto;
 }
 
 h1 {
@@ -91,11 +93,13 @@ a:hover {
 /* Styles pour dashboard.ejs */
 .container {
   max-width: 800px;
+  width: 100%;
   margin: 80px auto 50px;
   background: #1e293b;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  box-sizing: border-box;
 }
 
 h1 {
@@ -131,17 +135,66 @@ td.label {
   width: 40%;
 }
 
-.logout {
-  display: block;
-  margin-top: 20px;
-  text-align: center;
-  padding: 10px;
-  background: #ef4444;
-  color: white;
-  text-decoration: none;
-  border-radius: 5px;
+/* Titres de sections contrats */
+.contracts-title {
+  margin-top: 32px;
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.logout:hover {
-  background: #dc2626;
+/* Badges de compteur */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.badge-outstanding {
+  background: #f59e0b;
+}
+
+.badge-inprogress {
+  background: #3b82f6;
+}
+
+/* Tableaux de contrats */
+.contracts-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.contracts-table th {
+  background: #0f172a;
+  color: #94a3b8;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 2px solid #334155;
+  font-weight: bold;
+}
+
+.contracts-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #1e3a5f;
+  color: #e2e8f0;
+}
+
+.contracts-table tbody tr:hover {
+  background: #1e3a5f;
+}
+
+/* Message absence de contrats */
+.no-contracts {
+  color: #64748b;
+  font-style: italic;
+  font-size: 0.9rem;
+  margin: 4px 0 16px;
 }
