@@ -19,8 +19,8 @@ app.use(express.urlencoded({ extended: false }));
 
 // Langue (session, défaut anglais)
 app.use((req, res, next) => {
-  const lang = req.session.lang || 'en';
-  res.locals.t    = locales[lang] || locales.en;
+  const lang = req.session?.lang || 'en';
+  res.locals.t = locales[lang] || locales.en;
   res.locals.lang = lang;
   next();
 });
