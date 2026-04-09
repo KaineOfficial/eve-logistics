@@ -78,11 +78,20 @@ async function getValidToken(sess) {
   return sess.accessToken;
 }
 
+// ── Middleware membre (alliance ou corp) ─────────────────────────────────
+function requireMember(req, res, next) {
+  if (!req.session.character) return res.redirect('/login');
+  if (req.session.character.allianceId !== allianceId) {
+    return res.status(403).render('403', { character: req.session.character || null, version });
+  }
+  next();
+}
+
 // ── Middleware hauler (membre de l'alliance) ──────────────────────────────
 function requireHauler(req, res, next) {
   if (!req.session.character) return res.redirect('/login');
   if (req.session.character.allianceId !== allianceId) {
-    return res.status(403).send('Accès réservé aux membres de l\'alliance TSLC.');
+    return res.status(403).render('403', { character: req.session.character || null, version });
   }
   next();
 }
@@ -271,8 +280,8 @@ app.get('/contracts/refresh', async (req, res) => {
 
 // ── FRET ─────────────────────────────────────────────────────────────────
 
-// Liste publique des demandes
-app.get('/freight', (req, res) => {
+// Liste des demandes (membres alliance uniquement)
+app.get('/freight', requireMember, (req, res) => {
   const requests = db.prepare('SELECT * FROM requests ORDER BY created_at DESC').all();
   res.render('freight', {
     requests,
@@ -283,14 +292,12 @@ app.get('/freight', (req, res) => {
 });
 
 // Formulaire nouvelle demande
-app.get('/freight/new', (req, res) => {
-  if (!req.session.character) return res.redirect('/login');
+app.get('/freight/new', requireMember, (req, res) => {
   res.render('freight-new', { character: req.session.character, version });
 });
 
 // Soumettre une demande
-app.post('/freight/new', (req, res) => {
-  if (!req.session.character) return res.redirect('/login');
+app.post('/freight/new', requireMember, (req, res) => {
 
   const { pickup, destination, volume, collateral, reward, notes } = req.body;
 
