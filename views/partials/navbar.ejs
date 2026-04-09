@@ -1,14 +1,15 @@
 <nav class="navbar">
   <div class="navbar-left">
     <a href="/" class="nav-btn">Accueil</a>
-    <a href="/freight" class="nav-btn">Fret</a>
     <% if (character && character.allianceId == 99014321) { %>
-      <a href="/hauler" class="nav-btn hauler">Hauler</a>
+      <a href="/freight" class="nav-btn">Fret</a>
+      <% if (character.allianceId == 99014321) { %>
+        <a href="/hauler" class="nav-btn hauler">Hauler</a>
+      <% } %>
     <% } %>
   </div>
   <div class="navbar-right">
     <% if (character) { %>
-      <a href="/contracts/refresh" class="nav-btn refresh">Rafraîchir</a>
       <a href="/logout" class="nav-btn logout">Déconnexion</a>
     <% } else { %>
       <a href="/login" class="nav-btn">Se connecter</a>

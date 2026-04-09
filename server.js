@@ -28,14 +28,12 @@ const tokenUrl    = 'https://login.eveonline.com/v2/oauth/token';
 const scopes      = process.env.SCOPES || 'publicData';
 const allianceId  = parseInt(process.env.ALLIANCE_ID);
 
-// ── Token du compte service (cache mémoire + rotation en DB) ──────────────
+// ── Token du compte service (cache mémoire + rotation en DB) ─────────────
 let _serviceToken = null;
 let _serviceTokenExpiry = 0;
 
 async function getServiceToken() {
-  if (_serviceToken && Date.now() < _serviceTokenExpiry - 30000) {
-    return _serviceToken;
-  }
+  if (_serviceToken && Date.now() < _serviceTokenExpiry - 30000) return _serviceToken;
 
   const row = db.prepare('SELECT refresh_token FROM service_token WHERE id = 1').get();
   if (!row) throw new Error('SERVICE_REFRESH_TOKEN non configuré en DB');
@@ -58,47 +56,26 @@ async function getServiceToken() {
   return _serviceToken;
 }
 
-// ── Token du compte utilisateur (renouvellement auto) ────────────────────
-async function getValidToken(sess) {
-  if (Date.now() < sess.tokenExpiresAt - 30000) return sess.accessToken;
-
-  const response = await axios.post(
-    tokenUrl,
-    new URLSearchParams({ grant_type: 'refresh_token', refresh_token: sess.refreshToken }).toString(),
-    {
-      auth:    { username: process.env.CLIENT_ID, password: process.env.CLIENT_SECRET },
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    }
-  );
-
-  sess.accessToken    = response.data.access_token;
-  sess.refreshToken   = response.data.refresh_token;
-  sess.tokenExpiresAt = Date.now() + response.data.expires_in * 1000;
-
-  return sess.accessToken;
-}
-
-// ── Middleware membre (alliance ou corp) ─────────────────────────────────
+// ── Middlewares ───────────────────────────────────────────────────────────
 function requireMember(req, res, next) {
   if (!req.session.character) return res.redirect('/login');
   if (req.session.character.allianceId !== allianceId) {
-    return res.status(403).render('403', { character: req.session.character || null, version });
+    return res.status(403).render('403', { character: req.session.character, version });
   }
   next();
 }
 
-// ── Middleware hauler (membre de l'alliance) ──────────────────────────────
 function requireHauler(req, res, next) {
   if (!req.session.character) return res.redirect('/login');
   if (req.session.character.allianceId !== allianceId) {
-    return res.status(403).render('403', { character: req.session.character || null, version });
+    return res.status(403).render('403', { character: req.session.character, version });
   }
   next();
 }
 
 // ── Labels statuts ────────────────────────────────────────────────────────
 const STATUS_LABELS = {
-  pending:    'En attente d\'acceptation',
+  pending:    "En attente d'acceptation",
   accepted:   'En attente de transport',
   in_transit: 'En cours de transport',
   delivered:  'Livré',
@@ -111,15 +88,32 @@ const STATUS_LABELS = {
 
 // HOME
 app.get('/', (req, res) => {
-  if (req.session.character) {
-    res.render('dashboard', {
-      character: req.session.character,
-      contracts: req.session.contracts || { outstanding: [], inProgress: [] },
-      version
-    });
-  } else {
-    res.render('index', { version });
-  }
+  if (!req.session.character) return res.render('index', { version });
+
+  const char = req.session.character;
+
+  const stats = {};
+  ['pending', 'accepted', 'in_transit', 'delivered', 'cancelled'].forEach(s => {
+    stats[s] = db.prepare('SELECT COUNT(*) as n FROM requests WHERE status = ?').get(s).n;
+  });
+
+  const myRequests = db.prepare(
+    'SELECT * FROM requests WHERE char_id = ? ORDER BY created_at DESC LIMIT 5'
+  ).all(char.id);
+
+  const activeCount = db.prepare(
+    "SELECT COUNT(*) as n FROM requests WHERE status NOT IN ('delivered','cancelled')"
+  ).get().n;
+
+  res.render('dashboard', {
+    character: char,
+    stats,
+    myRequests,
+    activeCount,
+    statusLabels: STATUS_LABELS,
+    allianceId,
+    version
+  });
 });
 
 // LOGIN
@@ -138,11 +132,9 @@ app.get('/login', (req, res) => {
   res.redirect(`${baseAuthUrl}?${params}`);
 });
 
-// SERVICE SETUP (connexion unique du personnage service)
+// SERVICE SETUP
 app.get('/service-setup', (req, res) => {
-  if (process.env.SERVICE_REFRESH_TOKEN) {
-    return res.send('Service token déjà configuré.');
-  }
+  if (process.env.SERVICE_REFRESH_TOKEN) return res.send('Service token déjà configuré.');
 
   const state = crypto.randomBytes(16).toString('hex');
   req.session.oauthState     = state;
@@ -163,11 +155,9 @@ app.get('/service-setup', (req, res) => {
 app.get('/callback', async (req, res) => {
   const { code, state } = req.query;
 
-  if (!state || state !== req.session.oauthState) {
-    return res.status(400).send('State invalide');
-  }
+  if (!state || state !== req.session.oauthState) return res.status(400).send('State invalide');
 
-  // ── Callback service setup ──
+  // Callback service setup
   if (req.session.isServiceSetup) {
     req.session.isServiceSetup = false;
     try {
@@ -179,11 +169,9 @@ app.get('/callback', async (req, res) => {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         }
       );
-
       const verifyRes = await axios.get('https://login.eveonline.com/oauth/verify', {
         headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` }
       });
-
       return res.render('service-setup', {
         characterName: verifyRes.data.CharacterName,
         refreshToken:  tokenResponse.data.refresh_token,
@@ -196,7 +184,7 @@ app.get('/callback', async (req, res) => {
     }
   }
 
-  // ── Callback login normal ──
+  // Callback login normal
   try {
     const tokenResponse = await axios.post(
       tokenUrl,
@@ -210,10 +198,6 @@ app.get('/callback', async (req, res) => {
     const accessToken = tokenResponse.data.access_token;
     const authHeaders = { headers: { Authorization: `Bearer ${accessToken}` } };
 
-    req.session.accessToken    = accessToken;
-    req.session.refreshToken   = tokenResponse.data.refresh_token;
-    req.session.tokenExpiresAt = Date.now() + tokenResponse.data.expires_in * 1000;
-
     const verifyRes = await axios.get('https://login.eveonline.com/oauth/verify', authHeaders);
     const { CharacterID: characterId, CharacterName: characterName } = verifyRes.data;
 
@@ -223,13 +207,7 @@ app.get('/callback', async (req, res) => {
     ]);
 
     const corporationId = characterRes.data.corporation_id;
-
-    const [corpRes, contractsRes] = await Promise.all([
-      axios.get(`https://esi.evetech.net/latest/corporations/${corporationId}/`),
-      axios.get(`https://esi.evetech.net/latest/corporations/${corporationId}/contracts/`, authHeaders).catch(() => null)
-    ]);
-
-    const allContracts = contractsRes?.data || [];
+    const corpRes = await axios.get(`https://esi.evetech.net/latest/corporations/${corporationId}/`);
 
     req.session.character = {
       id:            characterId,
@@ -240,11 +218,6 @@ app.get('/callback', async (req, res) => {
       portrait:      portraitRes.data.px64x64
     };
 
-    req.session.contracts = {
-      outstanding: allContracts.filter(c => c.status === 'outstanding'),
-      inProgress:  allContracts.filter(c => c.status === 'in_progress')
-    };
-
     res.redirect('/');
   } catch (err) {
     console.error(err.response?.data || err.message);
@@ -252,53 +225,23 @@ app.get('/callback', async (req, res) => {
   }
 });
 
-// REFRESH CONTRATS (dashboard)
-app.get('/contracts/refresh', async (req, res) => {
-  if (!req.session.character) return res.redirect('/');
+// ── FRET ──────────────────────────────────────────────────────────────────
 
-  try {
-    const token       = await getValidToken(req.session);
-    const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
-    const corpId      = req.session.character.corporationId;
-
-    const contractsRes = await axios.get(
-      `https://esi.evetech.net/latest/corporations/${corpId}/contracts/`, authHeaders
-    ).catch(() => null);
-
-    const allContracts = contractsRes?.data || [];
-
-    req.session.contracts = {
-      outstanding: allContracts.filter(c => c.status === 'outstanding'),
-      inProgress:  allContracts.filter(c => c.status === 'in_progress')
-    };
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-  }
-
-  res.redirect('/');
-});
-
-// ── FRET ─────────────────────────────────────────────────────────────────
-
-// Liste des demandes (membres alliance uniquement)
 app.get('/freight', requireMember, (req, res) => {
   const requests = db.prepare('SELECT * FROM requests ORDER BY created_at DESC').all();
   res.render('freight', {
     requests,
     statusLabels: STATUS_LABELS,
-    character: req.session.character || null,
+    character: req.session.character,
     version
   });
 });
 
-// Formulaire nouvelle demande
 app.get('/freight/new', requireMember, (req, res) => {
   res.render('freight-new', { character: req.session.character, version });
 });
 
-// Soumettre une demande
 app.post('/freight/new', requireMember, (req, res) => {
-
   const { pickup, destination, volume, collateral, reward, notes } = req.body;
 
   db.prepare(`
@@ -320,10 +263,9 @@ app.post('/freight/new', requireMember, (req, res) => {
 
 // ── HAULER ────────────────────────────────────────────────────────────────
 
-// Panel hauler
 app.get('/hauler', requireHauler, (req, res) => {
   const requests = db.prepare(
-    "SELECT * FROM requests WHERE status != 'delivered' AND status != 'cancelled' ORDER BY created_at ASC"
+    "SELECT * FROM requests WHERE status NOT IN ('delivered','cancelled') ORDER BY created_at ASC"
   ).all();
   res.render('hauler', {
     requests,
@@ -333,15 +275,14 @@ app.get('/hauler', requireHauler, (req, res) => {
   });
 });
 
-// Mettre à jour le statut d'une demande
 app.post('/hauler/:id/status', requireHauler, (req, res) => {
   const { status } = req.body;
   const validStatuses = ['pending', 'accepted', 'in_transit', 'delivered', 'cancelled'];
   if (!validStatuses.includes(status)) return res.status(400).send('Statut invalide');
 
-  db.prepare(`
-    UPDATE requests SET status = ?, hauler_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-  `).run(status, req.session.character.name, req.params.id);
+  db.prepare(
+    'UPDATE requests SET status = ?, hauler_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+  ).run(status, req.session.character.name, req.params.id);
 
   res.redirect('/hauler');
 });

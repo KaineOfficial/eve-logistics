@@ -2,16 +2,15 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard</title>
+  <title>Dashboard — TSLC</title>
   <link rel="stylesheet" href="/style.css">
 </head>
-
 <body>
   <%- include('partials/navbar') %>
 
   <div class="container">
-    <h1>Dashboard</h1>
 
+    <!-- Profil -->
     <div class="profile">
       <img src="<%= character.portrait %>" width="80" height="80">
       <div>
@@ -20,77 +19,66 @@
       </div>
     </div>
 
-    <table>
-      <tr>
-        <td class="label">ID du personnage</td>
-        <td><%= character.id %></td>
-      </tr>
-      <tr>
-        <td class="label">Corporation</td>
-        <td><%= character.corporation %></td>
-      </tr>
-    </table>
+    <!-- Stats globales -->
+    <div class="stat-cards">
+      <div class="stat-card pending">
+        <div class="stat-number"><%= stats.pending %></div>
+        <div class="stat-label">En attente</div>
+      </div>
+      <div class="stat-card accepted">
+        <div class="stat-number"><%= stats.accepted %></div>
+        <div class="stat-label">Acceptées</div>
+      </div>
+      <div class="stat-card in-transit">
+        <div class="stat-number"><%= stats.in_transit %></div>
+        <div class="stat-label">En transit</div>
+      </div>
+      <div class="stat-card delivered">
+        <div class="stat-number"><%= stats.delivered %></div>
+        <div class="stat-label">Livrées</div>
+      </div>
+    </div>
 
-    <!-- Contrats en attente -->
-    <h2 class="contracts-title">
-      Contrats en attente
-      <span class="badge badge-outstanding"><%= contracts.outstanding.length %></span>
-    </h2>
-
-    <% if (contracts.outstanding.length === 0) { %>
-      <p class="no-contracts">Aucun contrat en attente.</p>
-    <% } else { %>
-      <table class="contracts-table">
-        <thead>
-          <tr>
-            <th>Titre</th>
-            <th>Type</th>
-            <th>Prix</th>
-            <th>Récompense</th>
-            <th>Expiration</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% contracts.outstanding.forEach(c => { %>
-            <tr>
-              <td><%= c.title || '(sans titre)' %></td>
-              <td><%= c.type %></td>
-              <td><%= c.price != null ? c.price.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
-              <td><%= c.reward != null ? c.reward.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
-              <td><%= new Date(c.date_expired).toLocaleDateString('fr-FR') %></td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
+    <!-- Accès rapide Hauler (membres alliance) -->
+    <% if (character.allianceId === allianceId) { %>
+      <div class="hauler-summary">
+        <div>
+          <div class="hauler-summary-text">Demandes actives à traiter</div>
+          <div class="hauler-summary-count"><%= activeCount %> demande<%= activeCount > 1 ? 's' : '' %></div>
+        </div>
+        <a href="/hauler" class="nav-btn hauler">Ouvrir le panel Hauler</a>
+      </div>
     <% } %>
 
-    <!-- Contrats en cours -->
-    <h2 class="contracts-title">
-      Contrats en cours
-      <span class="badge badge-inprogress"><%= contracts.inProgress.length %></span>
-    </h2>
+    <!-- Mes demandes récentes -->
+    <div class="section-header">
+      <h2>Mes demandes récentes</h2>
+      <a href="/freight">Voir toutes →</a>
+    </div>
 
-    <% if (contracts.inProgress.length === 0) { %>
-      <p class="no-contracts">Aucun contrat en cours.</p>
+    <% if (myRequests.length === 0) { %>
+      <p class="no-contracts">Aucune demande soumise pour le moment. <a href="/freight/new" style="display:inline;padding:0;background:none;color:#3b82f6;font-weight:normal;">Créer une demande</a></p>
     <% } else { %>
       <table class="contracts-table">
         <thead>
           <tr>
-            <th>Titre</th>
-            <th>Type</th>
-            <th>Prix</th>
+            <th>#</th>
+            <th>Départ → Arrivée</th>
+            <th>Volume (m³)</th>
             <th>Récompense</th>
-            <th>Expiration</th>
+            <th>Statut</th>
+            <th>Hauler</th>
           </tr>
         </thead>
         <tbody>
-          <% contracts.inProgress.forEach(c => { %>
+          <% myRequests.forEach(r => { %>
             <tr>
-              <td><%= c.title || '(sans titre)' %></td>
-              <td><%= c.type %></td>
-              <td><%= c.price != null ? c.price.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
-              <td><%= c.reward != null ? c.reward.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
-              <td><%= new Date(c.date_expired).toLocaleDateString('fr-FR') %></td>
+              <td>#<%= r.id %></td>
+              <td><%= r.pickup %> → <%= r.destination %></td>
+              <td><%= r.volume.toLocaleString('fr-FR') %></td>
+              <td><%= r.reward ? r.reward.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
+              <td><span class="status-badge status-<%= r.status %>"><%= statusLabels[r.status] %></span></td>
+              <td><%= r.hauler_name || '—' %></td>
             </tr>
           <% }) %>
         </tbody>
@@ -99,6 +87,6 @@
 
   </div>
 
-<%- include('partials/footer') %>
+  <%- include('partials/footer') %>
 </body>
 </html>

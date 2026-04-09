@@ -224,6 +224,95 @@ td.label {
   margin: 4px 0 16px;
 }
 
+/* Stat cards dashboard */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.stat-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-card .stat-number {
+  font-size: 2rem;
+  font-weight: bold;
+  line-height: 1.1;
+}
+
+.stat-card .stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-card.pending   .stat-number { color: #fcd34d; }
+.stat-card.accepted  .stat-number { color: #60a5fa; }
+.stat-card.in-transit .stat-number { color: #fb923c; }
+.stat-card.delivered .stat-number { color: #4ade80; }
+
+/* Bloc hauler résumé dashboard */
+.hauler-summary {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hauler-summary .hauler-summary-text {
+  font-size: 0.85rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.hauler-summary .hauler-summary-count {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #a78bfa;
+}
+
+/* En-têtes de section avec lien */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 28px 0 10px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #e2e8f0;
+}
+
+.section-header a {
+  display: inline;
+  padding: 0;
+  background: none;
+  color: #3b82f6;
+  font-size: 0.85rem;
+  font-weight: normal;
+  text-decoration: underline;
+}
+
+.section-header a:hover {
+  background: none;
+  color: #60a5fa;
+}
+
 /* Navbar gauche avec gap */
 .navbar-left {
   display: flex;
