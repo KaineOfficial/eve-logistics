@@ -1,5 +1,3 @@
-Voici une version peaufinée et cohérente de ton README.md, avec uniformisation des blocs de code et petites corrections de style :
-
 ````markdown
 # Panel Project
 
