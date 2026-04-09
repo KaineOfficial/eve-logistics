@@ -7,6 +7,8 @@
 </head>
 
 <body>
+  <%- include('partials/navbar') %>
+
   <div class="container">
     <h1>Dashboard</h1>
 
@@ -28,10 +30,8 @@
         <td><%= character.corporation %></td>
       </tr>
     </table>
-
-    <a href="/logout" class="logout">Déconnexion</a>
+  </div>
 
 <%- include('partials/footer') %>
-  </div>
 </body>
 </html>
