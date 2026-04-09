@@ -28,12 +28,25 @@
   background: #2563eb;
 }
 
+.nav-btn.refresh {
+  background: #10b981;
+}
+
+.nav-btn.refresh:hover {
+  background: #059669;
+}
+
 .nav-btn.logout {
   background: #ef4444;
 }
 
 .nav-btn.logout:hover {
   background: #dc2626;
+}
+
+.navbar-right {
+  display: flex;
+  gap: 8px;
 }
 
 body {

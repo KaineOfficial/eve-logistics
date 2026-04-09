@@ -22,8 +22,33 @@ app.use(session({
 }));
 
 const baseAuthUrl = 'https://login.eveonline.com/v2/oauth/authorize/';
-const tokenUrl = 'https://login.eveonline.com/v2/oauth/token';
-const scopes = process.env.SCOPES || 'publicData';
+const tokenUrl    = 'https://login.eveonline.com/v2/oauth/token';
+const scopes      = process.env.SCOPES || 'publicData';
+
+// Retourne un access token valide, le renouvelle automatiquement si expiré
+async function getValidToken(session) {
+  if (Date.now() < session.tokenExpiresAt - 30000) {
+    return session.accessToken;
+  }
+
+  const response = await axios.post(
+    tokenUrl,
+    new URLSearchParams({
+      grant_type:    'refresh_token',
+      refresh_token: session.refreshToken
+    }).toString(),
+    {
+      auth:    { username: process.env.CLIENT_ID, password: process.env.CLIENT_SECRET },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    }
+  );
+
+  session.accessToken     = response.data.access_token;
+  session.refreshToken    = response.data.refresh_token;
+  session.tokenExpiresAt  = Date.now() + response.data.expires_in * 1000;
+
+  return session.accessToken;
+}
 
 // HOME
 app.get('/', (req, res) => {
@@ -45,9 +70,9 @@ app.get('/login', (req, res) => {
 
   const params = new URLSearchParams({
     response_type: 'code',
-    redirect_uri: process.env.CALLBACK_URL,
-    client_id: process.env.CLIENT_ID,
-    scope: scopes,
+    redirect_uri:  process.env.CALLBACK_URL,
+    client_id:     process.env.CLIENT_ID,
+    scope:         scopes,
     state
   });
 
@@ -66,18 +91,23 @@ app.get('/callback', async (req, res) => {
     const tokenResponse = await axios.post(
       tokenUrl,
       new URLSearchParams({
-        grant_type: 'authorization_code',
+        grant_type:   'authorization_code',
         code,
         redirect_uri: process.env.CALLBACK_URL
       }).toString(),
       {
-        auth: { username: process.env.CLIENT_ID, password: process.env.CLIENT_SECRET },
+        auth:    { username: process.env.CLIENT_ID, password: process.env.CLIENT_SECRET },
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       }
     );
 
     const accessToken = tokenResponse.data.access_token;
     const authHeaders = { headers: { Authorization: `Bearer ${accessToken}` } };
+
+    // Stocker les tokens en session
+    req.session.accessToken    = accessToken;
+    req.session.refreshToken   = tokenResponse.data.refresh_token;
+    req.session.tokenExpiresAt = Date.now() + tokenResponse.data.expires_in * 1000;
 
     const verifyRes = await axios.get('https://login.eveonline.com/oauth/verify', authHeaders);
     const { CharacterID: characterId, CharacterName: characterName } = verifyRes.data;
@@ -98,10 +128,11 @@ app.get('/callback', async (req, res) => {
     const allContracts = contractsRes?.data || [];
 
     req.session.character = {
-      id: characterId,
-      name: characterName,
-      corporation: corpRes.data.name,
-      portrait: portraitRes.data.px64x64
+      id:            characterId,
+      name:          characterName,
+      corporation:   corpRes.data.name,
+      corporationId: corporationId,
+      portrait:      portraitRes.data.px64x64
     };
 
     req.session.contracts = {
@@ -114,6 +145,33 @@ app.get('/callback', async (req, res) => {
     console.error(err.response?.data || err.message);
     res.status(500).send('Erreur OAuth');
   }
+});
+
+// REFRESH CONTRATS
+app.get('/contracts/refresh', async (req, res) => {
+  if (!req.session.character) return res.redirect('/');
+
+  try {
+    const token       = await getValidToken(req.session);
+    const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+    const corpId      = req.session.character.corporationId;
+
+    const contractsRes = await axios.get(
+      `https://esi.evetech.net/latest/corporations/${corpId}/contracts/`,
+      authHeaders
+    ).catch(() => null);
+
+    const allContracts = contractsRes?.data || [];
+
+    req.session.contracts = {
+      outstanding: allContracts.filter(c => c.status === 'outstanding'),
+      inProgress:  allContracts.filter(c => c.status === 'in_progress')
+    };
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+  }
+
+  res.redirect('/');
 });
 
 // LOGOUT
