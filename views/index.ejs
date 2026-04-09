@@ -14,6 +14,7 @@
       align-items: center;
       height: 100vh;
       margin: 0;
+      flex-direction: column;
     }
 
     .box {
@@ -46,6 +47,12 @@
     a:hover {
       background: #2563eb;
     }
+
+    footer {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #94a3b8;
+    }
   </style>
 </head>
 
@@ -56,5 +63,9 @@
 
     <a href="/login">Se connecter avec EVE Online</a>
   </div>
+
+  <footer>
+    Version de l'application : <%= version %>
+  </footer>
 </body>
 </html>

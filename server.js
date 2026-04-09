@@ -5,6 +5,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const querystring = require('querystring');
 const path = require('path');
+const { version } = require('./package.json'); // VERSION AUTOMATIQUE
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -34,9 +35,9 @@ async function safeCall(fn) {
 // HOME
 app.get('/', (req, res) => {
   if (req.session.character) {
-    res.render('dashboard', { character: req.session.character });
+    res.render('dashboard', { character: req.session.character, version });
   } else {
-    res.render('index');
+    res.render('index', { version });
   }
 });
 
@@ -50,7 +51,7 @@ app.get('/login', (req, res) => {
     redirect_uri: process.env.CALLBACK_URL,
     client_id: process.env.CLIENT_ID,
     scope: scopes,
-    state: state
+    state
   };
 
   res.redirect(`${baseAuthUrl}?${querystring.stringify(params)}`);
@@ -68,7 +69,7 @@ app.get('/callback', async (req, res) => {
     const tokenResponse = await axios.post(tokenUrl,
       querystring.stringify({
         grant_type: 'authorization_code',
-        code: code,
+        code,
         redirect_uri: process.env.CALLBACK_URL
       }),
       {
@@ -82,7 +83,6 @@ app.get('/callback', async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // VERIFY
     const verifyRes = await axios.get(
       'https://login.eveonline.com/oauth/verify',
       { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -91,7 +91,6 @@ app.get('/callback', async (req, res) => {
     const characterId = verifyRes.data.CharacterID;
     const characterName = verifyRes.data.CharacterName;
 
-    // INFOS DE BASE
     const characterRes = await axios.get(
       `https://esi.evetech.net/latest/characters/${characterId}/`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -107,7 +106,6 @@ app.get('/callback', async (req, res) => {
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
-    // ALLIANCE
     let alliance = 'Aucune';
     if (characterRes.data.alliance_id) {
       const allianceRes = await axios.get(
@@ -116,8 +114,7 @@ app.get('/callback', async (req, res) => {
       alliance = allianceRes.data.name;
     }
 
-    // === DONNÉES AVANCÉES ===
-
+    // DONNÉES AVANCÉES
     const wallet = await safeCall(() =>
       axios.get(`https://esi.evetech.net/latest/characters/${characterId}/wallet/`,
         { headers: { Authorization: `Bearer ${accessToken}` } })
@@ -158,10 +155,8 @@ app.get('/callback', async (req, res) => {
       id: characterId,
       name: characterName,
       corporation: corpRes.data.name,
-      alliance: alliance,
+      alliance,
       portrait: portraitRes.data.px64x64,
-
-      // données avancées
       wallet: wallet?.data || null,
       skills: skills?.data || null,
       location: location?.data || null,
@@ -171,7 +166,7 @@ app.get('/callback', async (req, res) => {
       contracts: contracts?.data || null
     };
 
-    console.log('DATA:', req.session.character);
+    console.log(`DATA (${version}):`, req.session.character);
 
     res.redirect('/');
   } catch (err) {
@@ -187,5 +182,5 @@ app.get('/logout', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Serveur démarré sur ${port}`);
+  console.log(`Serveur démarré sur ${port} - version ${version}`);
 });
