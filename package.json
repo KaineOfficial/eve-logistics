@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "axios": "^1.14.0",
+    "dotenv": "^17.4.1",
+    "ejs": "^5.0.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "querystring": "^0.2.1"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "name": "eve-app",
+  "version": "1.0.0",
+  "main": "server.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
