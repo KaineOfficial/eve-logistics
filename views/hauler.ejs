@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Hauler — TSLC</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container wide">
+    <h1>Panel Hauler</h1>
+    <p style="color:#94a3b8;">Connecté en tant que <strong><%= character.name %></strong></p>
+
+    <% if (requests.length === 0) { %>
+      <p class="no-contracts">Aucune demande active.</p>
+    <% } else { %>
+      <% requests.forEach(r => { %>
+        <div class="hauler-card">
+          <div class="hauler-card-header">
+            <span>#<%= r.id %> — <strong><%= r.char_name %></strong></span>
+            <span class="status-badge status-<%= r.status %>"><%= statusLabels[r.status] %></span>
+          </div>
+
+          <div class="hauler-card-body">
+            <div class="hauler-info">
+              <span><strong>Départ :</strong> <%= r.pickup %></span>
+              <span><strong>Arrivée :</strong> <%= r.destination %></span>
+              <span><strong>Volume :</strong> <%= r.volume.toLocaleString('fr-FR') %> m³</span>
+              <span><strong>Collateral :</strong> <%= r.collateral.toLocaleString('fr-FR') %> ISK</span>
+              <span><strong>Récompense :</strong> <%= r.reward ? r.reward.toLocaleString('fr-FR') + ' ISK' : '—' %></span>
+              <% if (r.notes) { %><span><strong>Notes :</strong> <%= r.notes %></span><% } %>
+              <% if (r.hauler_name) { %><span><strong>Hauler :</strong> <%= r.hauler_name %></span><% } %>
+            </div>
+
+            <form class="status-form" action="/hauler/<%= r.id %>/status" method="POST">
+              <select name="status" class="status-select">
+                <option value="pending"    <%= r.status === 'pending'    ? 'selected' : '' %>>En attente d'acceptation</option>
+                <option value="accepted"   <%= r.status === 'accepted'   ? 'selected' : '' %>>En attente de transport</option>
+                <option value="in_transit" <%= r.status === 'in_transit' ? 'selected' : '' %>>En cours de transport</option>
+                <option value="delivered"  <%= r.status === 'delivered'  ? 'selected' : '' %>>Livré</option>
+                <option value="cancelled"  <%= r.status === 'cancelled'  ? 'selected' : '' %>>Annulé</option>
+              </select>
+              <button type="submit" class="nav-btn refresh">Mettre à jour</button>
+            </form>
+          </div>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

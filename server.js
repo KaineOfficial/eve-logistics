@@ -6,6 +6,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const path = require('path');
 const { version } = require('./package.json');
+const db = require('./db');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,6 +14,7 @@ const port = process.env.PORT || 3000;
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({ extended: false }));
 
 app.use(session({
   store: new FileStore({ path: './sessions', retries: 1 }),
@@ -24,31 +26,79 @@ app.use(session({
 const baseAuthUrl = 'https://login.eveonline.com/v2/oauth/authorize/';
 const tokenUrl    = 'https://login.eveonline.com/v2/oauth/token';
 const scopes      = process.env.SCOPES || 'publicData';
+const allianceId  = parseInt(process.env.ALLIANCE_ID);
 
-// Retourne un access token valide, le renouvelle automatiquement si expiré
-async function getValidToken(session) {
-  if (Date.now() < session.tokenExpiresAt - 30000) {
-    return session.accessToken;
+// ── Token du compte service (cache mémoire + rotation en DB) ──────────────
+let _serviceToken = null;
+let _serviceTokenExpiry = 0;
+
+async function getServiceToken() {
+  if (_serviceToken && Date.now() < _serviceTokenExpiry - 30000) {
+    return _serviceToken;
   }
+
+  const row = db.prepare('SELECT refresh_token FROM service_token WHERE id = 1').get();
+  if (!row) throw new Error('SERVICE_REFRESH_TOKEN non configuré en DB');
 
   const response = await axios.post(
     tokenUrl,
-    new URLSearchParams({
-      grant_type:    'refresh_token',
-      refresh_token: session.refreshToken
-    }).toString(),
+    new URLSearchParams({ grant_type: 'refresh_token', refresh_token: row.refresh_token }).toString(),
+    {
+      auth:    { username: process.env.SERVICE_CLIENT_ID, password: process.env.SERVICE_CLIENT_SECRET },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    }
+  );
+
+  _serviceToken       = response.data.access_token;
+  _serviceTokenExpiry = Date.now() + response.data.expires_in * 1000;
+
+  db.prepare('UPDATE service_token SET refresh_token = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1')
+    .run(response.data.refresh_token);
+
+  return _serviceToken;
+}
+
+// ── Token du compte utilisateur (renouvellement auto) ────────────────────
+async function getValidToken(sess) {
+  if (Date.now() < sess.tokenExpiresAt - 30000) return sess.accessToken;
+
+  const response = await axios.post(
+    tokenUrl,
+    new URLSearchParams({ grant_type: 'refresh_token', refresh_token: sess.refreshToken }).toString(),
     {
       auth:    { username: process.env.CLIENT_ID, password: process.env.CLIENT_SECRET },
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     }
   );
 
-  session.accessToken    = response.data.access_token;
-  session.refreshToken   = response.data.refresh_token;
-  session.tokenExpiresAt = Date.now() + response.data.expires_in * 1000;
+  sess.accessToken    = response.data.access_token;
+  sess.refreshToken   = response.data.refresh_token;
+  sess.tokenExpiresAt = Date.now() + response.data.expires_in * 1000;
 
-  return session.accessToken;
+  return sess.accessToken;
 }
+
+// ── Middleware hauler (membre de l'alliance) ──────────────────────────────
+function requireHauler(req, res, next) {
+  if (!req.session.character) return res.redirect('/login');
+  if (req.session.character.allianceId !== allianceId) {
+    return res.status(403).send('Accès réservé aux membres de l\'alliance TSLC.');
+  }
+  next();
+}
+
+// ── Labels statuts ────────────────────────────────────────────────────────
+const STATUS_LABELS = {
+  pending:    'En attente d\'acceptation',
+  accepted:   'En attente de transport',
+  in_transit: 'En cours de transport',
+  delivered:  'Livré',
+  cancelled:  'Annulé'
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// ROUTES
+// ════════════════════════════════════════════════════════════════════════════
 
 // HOME
 app.get('/', (req, res) => {
@@ -79,14 +129,14 @@ app.get('/login', (req, res) => {
   res.redirect(`${baseAuthUrl}?${params}`);
 });
 
-// SERVICE SETUP — connexion unique du personnage service pour obtenir son refresh_token
+// SERVICE SETUP (connexion unique du personnage service)
 app.get('/service-setup', (req, res) => {
   if (process.env.SERVICE_REFRESH_TOKEN) {
-    return res.send('Service token déjà configuré. Supprime SERVICE_REFRESH_TOKEN du .env pour reconfigurer.');
+    return res.send('Service token déjà configuré.');
   }
 
   const state = crypto.randomBytes(16).toString('hex');
-  req.session.oauthState    = state;
+  req.session.oauthState     = state;
   req.session.isServiceSetup = true;
 
   const params = new URLSearchParams({
@@ -108,31 +158,27 @@ app.get('/callback', async (req, res) => {
     return res.status(400).send('State invalide');
   }
 
-  // Callback du service setup
+  // ── Callback service setup ──
   if (req.session.isServiceSetup) {
     req.session.isServiceSetup = false;
     try {
       const tokenResponse = await axios.post(
         tokenUrl,
-        new URLSearchParams({
-          grant_type:   'authorization_code',
-          code,
-          redirect_uri: process.env.CALLBACK_URL
-        }).toString(),
+        new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: process.env.CALLBACK_URL }).toString(),
         {
           auth:    { username: process.env.SERVICE_CLIENT_ID, password: process.env.SERVICE_CLIENT_SECRET },
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         }
       );
 
-      const accessToken = tokenResponse.data.access_token;
-      const verifyRes   = await axios.get('https://login.eveonline.com/oauth/verify', {
-        headers: { Authorization: `Bearer ${accessToken}` }
+      const verifyRes = await axios.get('https://login.eveonline.com/oauth/verify', {
+        headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` }
       });
 
       return res.render('service-setup', {
         characterName: verifyRes.data.CharacterName,
         refreshToken:  tokenResponse.data.refresh_token,
+        character:     null,
         version
       });
     } catch (err) {
@@ -141,15 +187,11 @@ app.get('/callback', async (req, res) => {
     }
   }
 
-  // Callback login normal
+  // ── Callback login normal ──
   try {
     const tokenResponse = await axios.post(
       tokenUrl,
-      new URLSearchParams({
-        grant_type:   'authorization_code',
-        code,
-        redirect_uri: process.env.CALLBACK_URL
-      }).toString(),
+      new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: process.env.CALLBACK_URL }).toString(),
       {
         auth:    { username: process.env.CLIENT_ID, password: process.env.CLIENT_SECRET },
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
@@ -175,8 +217,7 @@ app.get('/callback', async (req, res) => {
 
     const [corpRes, contractsRes] = await Promise.all([
       axios.get(`https://esi.evetech.net/latest/corporations/${corporationId}/`),
-      axios.get(`https://esi.evetech.net/latest/corporations/${corporationId}/contracts/`, authHeaders)
-        .catch(() => null)
+      axios.get(`https://esi.evetech.net/latest/corporations/${corporationId}/contracts/`, authHeaders).catch(() => null)
     ]);
 
     const allContracts = contractsRes?.data || [];
@@ -186,6 +227,7 @@ app.get('/callback', async (req, res) => {
       name:          characterName,
       corporation:   corpRes.data.name,
       corporationId: corporationId,
+      allianceId:    characterRes.data.alliance_id || null,
       portrait:      portraitRes.data.px64x64
     };
 
@@ -201,7 +243,7 @@ app.get('/callback', async (req, res) => {
   }
 });
 
-// REFRESH CONTRATS
+// REFRESH CONTRATS (dashboard)
 app.get('/contracts/refresh', async (req, res) => {
   if (!req.session.character) return res.redirect('/');
 
@@ -211,8 +253,7 @@ app.get('/contracts/refresh', async (req, res) => {
     const corpId      = req.session.character.corporationId;
 
     const contractsRes = await axios.get(
-      `https://esi.evetech.net/latest/corporations/${corpId}/contracts/`,
-      authHeaders
+      `https://esi.evetech.net/latest/corporations/${corpId}/contracts/`, authHeaders
     ).catch(() => null);
 
     const allContracts = contractsRes?.data || [];
@@ -226,6 +267,76 @@ app.get('/contracts/refresh', async (req, res) => {
   }
 
   res.redirect('/');
+});
+
+// ── FRET ─────────────────────────────────────────────────────────────────
+
+// Liste publique des demandes
+app.get('/freight', (req, res) => {
+  const requests = db.prepare('SELECT * FROM requests ORDER BY created_at DESC').all();
+  res.render('freight', {
+    requests,
+    statusLabels: STATUS_LABELS,
+    character: req.session.character || null,
+    version
+  });
+});
+
+// Formulaire nouvelle demande
+app.get('/freight/new', (req, res) => {
+  if (!req.session.character) return res.redirect('/login');
+  res.render('freight-new', { character: req.session.character, version });
+});
+
+// Soumettre une demande
+app.post('/freight/new', (req, res) => {
+  if (!req.session.character) return res.redirect('/login');
+
+  const { pickup, destination, volume, collateral, reward, notes } = req.body;
+
+  db.prepare(`
+    INSERT INTO requests (char_name, char_id, pickup, destination, volume, collateral, reward, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    req.session.character.name,
+    req.session.character.id,
+    pickup.trim(),
+    destination.trim(),
+    parseFloat(volume) || 0,
+    parseFloat(collateral) || 0,
+    parseFloat(reward) || 0,
+    (notes || '').trim()
+  );
+
+  res.redirect('/freight');
+});
+
+// ── HAULER ────────────────────────────────────────────────────────────────
+
+// Panel hauler
+app.get('/hauler', requireHauler, (req, res) => {
+  const requests = db.prepare(
+    "SELECT * FROM requests WHERE status != 'delivered' AND status != 'cancelled' ORDER BY created_at ASC"
+  ).all();
+  res.render('hauler', {
+    requests,
+    statusLabels: STATUS_LABELS,
+    character: req.session.character,
+    version
+  });
+});
+
+// Mettre à jour le statut d'une demande
+app.post('/hauler/:id/status', requireHauler, (req, res) => {
+  const { status } = req.body;
+  const validStatuses = ['pending', 'accepted', 'in_transit', 'delivered', 'cancelled'];
+  if (!validStatuses.includes(status)) return res.status(400).send('Statut invalide');
+
+  db.prepare(`
+    UPDATE requests SET status = ?, hauler_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+  `).run(status, req.session.character.name, req.params.id);
+
+  res.redirect('/hauler');
 });
 
 // LOGOUT

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Fret — TSLC</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container wide">
+    <div class="page-header">
+      <h1>Demandes de transport</h1>
+      <% if (character) { %>
+        <a href="/freight/new" class="nav-btn refresh">+ Nouvelle demande</a>
+      <% } else { %>
+        <a href="/login" class="nav-btn">Se connecter pour soumettre</a>
+      <% } %>
+    </div>
+
+    <% if (requests.length === 0) { %>
+      <p class="no-contracts">Aucune demande de transport pour le moment.</p>
+    <% } else { %>
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Demandeur</th>
+            <th>Départ</th>
+            <th>Arrivée</th>
+            <th>Volume (m³)</th>
+            <th>Collateral</th>
+            <th>Récompense</th>
+            <th>Statut</th>
+            <th>Hauler</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% requests.forEach(r => { %>
+            <tr>
+              <td>#<%= r.id %></td>
+              <td><%= r.char_name %></td>
+              <td><%= r.pickup %></td>
+              <td><%= r.destination %></td>
+              <td><%= r.volume.toLocaleString('fr-FR') %></td>
+              <td><%= r.collateral.toLocaleString('fr-FR') %> ISK</td>
+              <td><%= r.reward ? r.reward.toLocaleString('fr-FR') + ' ISK' : '—' %></td>
+              <td><span class="status-badge status-<%= r.status %>"><%= statusLabels[r.status] %></span></td>
+              <td><%= r.hauler_name || '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>
