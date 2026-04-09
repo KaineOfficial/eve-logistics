@@ -204,6 +204,18 @@ td.label {
   background: #1e3a5f;
 }
 
+/* Token box service setup */
+.token-box {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 16px;
+  word-break: break-all;
+  font-size: 0.85rem;
+  color: #10b981;
+  margin-top: 12px;
+}
+
 /* Message absence de contrats */
 .no-contracts {
   color: #64748b;

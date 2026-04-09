@@ -43,9 +43,9 @@ async function getValidToken(session) {
     }
   );
 
-  session.accessToken     = response.data.access_token;
-  session.refreshToken    = response.data.refresh_token;
-  session.tokenExpiresAt  = Date.now() + response.data.expires_in * 1000;
+  session.accessToken    = response.data.access_token;
+  session.refreshToken   = response.data.refresh_token;
+  session.tokenExpiresAt = Date.now() + response.data.expires_in * 1000;
 
   return session.accessToken;
 }
@@ -79,6 +79,27 @@ app.get('/login', (req, res) => {
   res.redirect(`${baseAuthUrl}?${params}`);
 });
 
+// SERVICE SETUP — connexion unique du personnage service pour obtenir son refresh_token
+app.get('/service-setup', (req, res) => {
+  if (process.env.SERVICE_REFRESH_TOKEN) {
+    return res.send('Service token déjà configuré. Supprime SERVICE_REFRESH_TOKEN du .env pour reconfigurer.');
+  }
+
+  const state = crypto.randomBytes(16).toString('hex');
+  req.session.oauthState    = state;
+  req.session.isServiceSetup = true;
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    redirect_uri:  process.env.CALLBACK_URL,
+    client_id:     process.env.SERVICE_CLIENT_ID,
+    scope:         'esi-contracts.read_corporation_contracts.v1',
+    state
+  });
+
+  res.redirect(`${baseAuthUrl}?${params}`);
+});
+
 // CALLBACK
 app.get('/callback', async (req, res) => {
   const { code, state } = req.query;
@@ -87,6 +108,40 @@ app.get('/callback', async (req, res) => {
     return res.status(400).send('State invalide');
   }
 
+  // Callback du service setup
+  if (req.session.isServiceSetup) {
+    req.session.isServiceSetup = false;
+    try {
+      const tokenResponse = await axios.post(
+        tokenUrl,
+        new URLSearchParams({
+          grant_type:   'authorization_code',
+          code,
+          redirect_uri: process.env.CALLBACK_URL
+        }).toString(),
+        {
+          auth:    { username: process.env.SERVICE_CLIENT_ID, password: process.env.SERVICE_CLIENT_SECRET },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        }
+      );
+
+      const accessToken = tokenResponse.data.access_token;
+      const verifyRes   = await axios.get('https://login.eveonline.com/oauth/verify', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      return res.render('service-setup', {
+        characterName: verifyRes.data.CharacterName,
+        refreshToken:  tokenResponse.data.refresh_token,
+        version
+      });
+    } catch (err) {
+      console.error(err.response?.data || err.message);
+      return res.status(500).send('Erreur service setup');
+    }
+  }
+
+  // Callback login normal
   try {
     const tokenResponse = await axios.post(
       tokenUrl,
@@ -104,7 +159,6 @@ app.get('/callback', async (req, res) => {
     const accessToken = tokenResponse.data.access_token;
     const authHeaders = { headers: { Authorization: `Bearer ${accessToken}` } };
 
-    // Stocker les tokens en session
     req.session.accessToken    = accessToken;
     req.session.refreshToken   = tokenResponse.data.refresh_token;
     req.session.tokenExpiresAt = Date.now() + tokenResponse.data.expires_in * 1000;
