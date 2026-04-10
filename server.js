@@ -139,8 +139,6 @@ app.get('/login', (req, res) => {
 
 // SERVICE SETUP
 app.get('/service-setup', (req, res) => {
-  if (process.env.SERVICE_REFRESH_TOKEN) return res.send('Service token déjà configuré.');
-
   const state = crypto.randomBytes(16).toString('hex');
   req.session.oauthState     = state;
   req.session.isServiceSetup = true;
@@ -149,7 +147,7 @@ app.get('/service-setup', (req, res) => {
     response_type: 'code',
     redirect_uri:  process.env.CALLBACK_URL,
     client_id:     process.env.SERVICE_CLIENT_ID,
-    scope:         'esi-contracts.read_corporation_contracts.v1',
+    scope:         process.env.SCOPES,
     state
   });
 
