@@ -164,6 +164,8 @@
 
       const surchargeRow = document.getElementById('surcharge-row');
       if (surchargeRow) surchargeRow.style.display = 'none';
+      const jumpsRow = document.getElementById('jumps-row');
+      if (jumpsRow) jumpsRow.style.display = 'none';
 
       if (!volInput.value && !colInput.value) return;
 
@@ -184,7 +186,8 @@
       // Find max collateral from tiers
       const maxCol = cfg.tiers.length > 0 ? cfg.tiers[cfg.tiers.length - 1].maxCollateral : 0;
       if (maxCol > 0 && col > maxCol) {
-        const msg = t.errCollateral;
+        const limit = maxCol >= 1e9 ? fmt(maxCol / 1e9) + ' B ISK' : fmt(maxCol / 1e6) + ' M ISK';
+        const msg = 'Collateral exceeds the ' + limit + ' limit.';
         colHint.textContent = msg;
         colHint.className = 'field-hint hint-error';
         resError.textContent = msg;
@@ -213,7 +216,6 @@
       }
 
       // Jump cost
-      const jumpsRow = document.getElementById('jumps-row');
       if (JUMP_ENABLED && currentJumps !== null && currentJumps > 0 && JUMP_PRICE_PER_M3 > 0) {
         const jumpCost = vol * JUMP_PRICE_PER_M3 * currentJumps;
         if (jumpsRow) {
@@ -221,8 +223,6 @@
           document.getElementById('result-jumps').textContent = currentJumps + ' jumps → +' + fmt(jumpCost) + ' ISK';
         }
         reward += jumpCost;
-      } else if (jumpsRow) {
-        jumpsRow.style.display = 'none';
       }
 
       resReward.textContent = fmt(reward) + ' ISK';
