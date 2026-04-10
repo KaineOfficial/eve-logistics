@@ -1072,18 +1072,18 @@ td.label {
 }
 
 .sortable th[data-sort]::after {
-  content: ' \u2195';
+  content: ' \2195';
   font-size: 0.7rem;
   color: #475569;
 }
 
 .sortable th[data-dir="asc"]::after {
-  content: ' \u2191';
+  content: ' \2191';
   color: #3b82f6;
 }
 
 .sortable th[data-dir="desc"]::after {
-  content: ' \u2193';
+  content: ' \2193';
   color: #3b82f6;
 }
 
