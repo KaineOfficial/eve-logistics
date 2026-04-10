@@ -291,3 +291,33 @@ Without a valid license, the panel will display a license error page on all rout
 Modifying, reverse-engineering, or circumventing the license system is prohibited.
 
 Contact **Yashiro Yamamoto** in-game or via Discord **kaine_off** for pricing and licensing.
+
+
+Pictures : 
+
+<img width="1911" height="905" alt="Capture d’écran 2026-04-10 124647" src="https://github.com/user-attachments/assets/46b8b402-ba51-42d2-8fd8-3a1788df9515" />
+<img width="1901" height="908" alt="Capture d’écran 2026-04-10 124718" src="https://github.com/user-attachments/assets/e27d5ef9-894a-48b9-b327-96476ca45f4e" />
+<img width="1907" height="907" alt="Capture d’écran 2026-04-10 124738" src="https://github.com/user-attachments/assets/099a5412-ae60-4b3f-8a66-fe2325f9a8eb" />
+<img width="1910" height="903" alt="Capture d’écran 2026-04-10 124826" src="https://github.com/user-attachments/assets/a9906dea-0f5c-40e8-98f0-c24f1d168ed5" />
+<img width="1907" height="903" alt="Capture d’écran 2026-04-10 124844" src="https://github.com/user-attachments/assets/d285bb79-d29f-4f54-a5c5-10f38a6cfd94" />
+<img width="1910" height="901" alt="Capture d’écran 2026-04-10 124858" src="https://github.com/user-attachments/assets/7b8330d0-1d67-4fa7-bf9b-2daff6da7fef" />
+<img width="1903" height="900" alt="Capture d’écran 2026-04-10 124928" src="https://github.com/user-attachments/assets/5c11d3e1-e333-4f78-a396-649316de918b" />
+<img width="1904" height="906" alt="Capture d’écran 2026-04-10 124949" src="https://github.com/user-attachments/assets/7f6d099a-f31a-415a-81d7-540660119ff9" />
+<img width="1908" height="903" alt="Capture d’écran 2026-04-10 125015" src="https://github.com/user-attachments/assets/dbc5c122-2c74-48ad-8396-f251d55d0e01" />
+<img width="1906" height="904" alt="Capture d’écran 2026-04-10 125032" src="https://github.com/user-attachments/assets/46ffbf54-30c5-407c-b02e-d88625eb45c7" />
+<img width="1907" height="906" alt="Capture d’écran 2026-04-10 125104" src="https://github.com/user-attachments/assets/0a1bc473-7dc7-4973-b790-ea0de61f4fd7" />
+<img width="1907" height="906" alt="Capture d’écran 2026-04-10 125104" src="https://github.com/user-attachments/assets/0a1bc473-7dc7-4973-b790-ea0de61f4fd7" />
+<img width="1912" height="907" alt="Capture d’écran 2026-04-10 125200" src="https://github.com/user-attachments/assets/7ae78a11-aecd-42b5-aaa3-de586f85da4c" />
+
+
+
+
+
+
+
+
+
+
+
+
+
