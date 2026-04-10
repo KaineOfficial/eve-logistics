@@ -39,18 +39,51 @@ const tokenUrl    = 'https://login.eveonline.com/v2/oauth/token';
 const scopes      = process.env.SCOPES || 'publicData';
 const allianceId  = parseInt(process.env.ALLIANCE_ID);
 
-// ── Standards de hauling (affiché sur la page /freight) ──────────────────
-const FREIGHT_STANDARDS = {
-  maxVolume:     200_000,
-  maxCollateral: 10_000_000_000,
-  expirationWeeks: 4,
-  daysToComplete:  7,
-  tiers: [
-    { maxCollateral: 1_000_000_000,  ratePerM3: 600  },
-    { maxCollateral: 5_000_000_000,  ratePerM3: 950  },
-    { maxCollateral: 10_000_000_000, ratePerM3: 1250 },
-  ]
-};
+// ── Settings depuis la DB ────────────────────────────────────────────────
+function getSetting(key) {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  return row ? row.value : null;
+}
+
+function getSettingJSON(key) {
+  const val = getSetting(key);
+  try { return val ? JSON.parse(val) : null; } catch { return null; }
+}
+
+function setSetting(key, value) {
+  const val = typeof value === 'string' ? value : JSON.stringify(value);
+  db.prepare('INSERT INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP').run(key, val);
+}
+
+function getFreightStandards() {
+  return getSettingJSON('freight_standards') || {
+    maxVolume: 200000, maxCollateral: 10000000000,
+    expirationWeeks: 4, daysToComplete: 7,
+    tiers: [
+      { maxCollateral: 1000000000, ratePerM3: 600 },
+      { maxCollateral: 5000000000, ratePerM3: 950 },
+      { maxCollateral: 10000000000, ratePerM3: 1250 },
+    ]
+  };
+}
+
+function getAdminIds() {
+  const ids = getSettingJSON('admin_ids');
+  const envIds = (process.env.ADMIN_IDS || '').split(',').map(Number).filter(Boolean);
+  return [...new Set([...(ids || []), ...envIds])];
+}
+
+function getCommonStations() {
+  return getSettingJSON('common_stations') || [];
+}
+
+function getDiscordWebhookUrl() {
+  return getSetting('discord_webhook_url') || process.env.DISCORD_WEBHOOK_URL || '';
+}
+
+function getCacheDuration() {
+  return (parseInt(getSetting('cache_duration')) || 5) * 60 * 1000;
+}
 
 // ── Token du compte service (cache mémoire + rotation en DB) ─────────────
 let _serviceToken = null;
@@ -61,11 +94,9 @@ let _contractsCache = null;
 let _contractsCacheExpiry = 0;
 let _knownContractIds = new Set();
 
-// ── Discord webhook ──────────────────────────────────────────────────────
-const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
-
 async function notifyDiscord(contract) {
-  if (!DISCORD_WEBHOOK_URL) return;
+  const webhookUrl = getDiscordWebhookUrl();
+  if (!webhookUrl || getSetting('discord_notifications') !== 'true') return;
   try {
     const vol = contract.volume ? `\`${contract.volume.toLocaleString()} m³\`` : '—';
     const col = contract.collateral ? `\`${contract.collateral.toLocaleString()} ISK\`` : '—';
@@ -96,7 +127,7 @@ async function notifyDiscord(contract) {
       timestamp: contract.date_issued || new Date().toISOString(),
     };
 
-    await axios.post(DISCORD_WEBHOOK_URL, {
+    await axios.post(webhookUrl, {
       username: 'TSLC Logistics',
       avatar_url: 'https://images.evetech.net/alliances/99014321/logo?size=128',
       embeds: [embed],
@@ -205,7 +236,7 @@ async function fetchAllianceContracts() {
   _knownContractIds = currentIds;
 
   _contractsCache       = enriched;
-  _contractsCacheExpiry = Date.now() + 5 * 60 * 1000;
+  _contractsCacheExpiry = Date.now() + getCacheDuration();
   return enriched;
 }
 
@@ -218,6 +249,25 @@ function requireMember(req, res, next) {
   next();
 }
 
+
+function requireAdmin(req, res, next) {
+  if (!req.session.character) return res.redirect('/login');
+  const adminIds = getAdminIds();
+  if (!adminIds.includes(req.session.character.id)) {
+    return res.status(403).render('403', { character: req.session.character, version });
+  }
+  next();
+}
+
+// Rendre isAdmin dispo dans toutes les vues
+app.use((req, res, next) => {
+  if (req.session.character) {
+    res.locals.isAdmin = getAdminIds().includes(req.session.character.id);
+  } else {
+    res.locals.isAdmin = false;
+  }
+  next();
+});
 
 // ════════════════════════════════════════════════════════════════════════════
 // ROUTES
@@ -369,10 +419,10 @@ app.get('/callback', async (req, res) => {
 app.get('/logistics', requireMember, async (_req, res) => {
   try {
     const contracts = await fetchAllianceContracts();
-    res.render('logistics', { contracts, standards: FREIGHT_STANDARDS });
+    res.render('logistics', { contracts, standards: getFreightStandards() });
   } catch (err) {
     console.error('[logistics] ESI error:', err.message);
-    res.render('logistics', { contracts: [], standards: FREIGHT_STANDARDS });
+    res.render('logistics', { contracts: [], standards: getFreightStandards() });
   }
 });
 
@@ -402,25 +452,13 @@ app.get('/hauler', requireMember, (_req, res) => res.redirect('/logistics'));
 
 // ── RECHERCHE STATIONS ───────────────────────────────────────────────────
 
-// Stations NPC principales (fallback instantané si ESI indisponible)
-const COMMON_STATIONS = [
-  'Jita IV - Moon 4 - Caldari Navy Assembly Plant',
-  'Amarr VIII (Oris) - Emperor Family Academy',
-  'Dodixie IX - Moon 20 - Federation Navy Assembly Plant',
-  'Rens VI - Moon 8 - Brutor Tribe Treasury',
-  'Hek VIII - Moon 12 - Boundless Creation Factory',
-  'Perimeter - Tranquility Trading Tower',
-  'Niarja - TTT - Tranquility Trading Tower',
-  'Oursulaert VIII - Moon 3 - Federation Navy Assembly Plant',
-  'Tash-Murkon Prime II - Moon 1 - Kaalakiota Corporation Factory',
-];
 
 app.get('/api/stations', async (req, res) => {
   const q = (req.query.q || '').trim().toLowerCase();
   if (q.length < 3) return res.json([]);
 
   // Correspondances locales (toujours disponibles, réponse instantanée)
-  const localMatches = COMMON_STATIONS.filter(s => s.toLowerCase().includes(q));
+  const localMatches = getCommonStations().filter(s => s.toLowerCase().includes(q));
 
   try {
     const token   = await getServiceToken();
@@ -455,7 +493,73 @@ app.get('/api/stations', async (req, res) => {
 
 // CALCULATEUR
 app.get('/calculator', (req, res) => {
-  res.render('calculator', { standards: FREIGHT_STANDARDS });
+  res.render('calculator', { standards: getFreightStandards() });
+});
+
+// ── ADMIN ────────────────────────────────────────────────────────────────
+
+app.use(express.json());
+
+app.get('/admin', requireAdmin, (req, res) => {
+  res.render('admin', {
+    standards:      getFreightStandards(),
+    webhookUrl:     getSetting('discord_webhook_url') || '',
+    discordEnabled: getSetting('discord_notifications') === 'true',
+    stations:       getCommonStations(),
+    cacheDuration:  parseInt(getSetting('cache_duration')) || 5,
+    adminIds:       getAdminIds(),
+  });
+});
+
+app.post('/admin/settings', requireAdmin, (req, res) => {
+  const { section } = req.body;
+
+  if (section === 'standards') {
+    const standards = {
+      maxVolume:       parseInt(req.body.maxVolume) || 200000,
+      maxCollateral:   parseFloat(req.body.maxCollateral) || 10000000000,
+      expirationWeeks: parseInt(req.body.expirationWeeks) || 4,
+      daysToComplete:  parseInt(req.body.daysToComplete) || 7,
+      tiers: [],
+    };
+    // Tiers dynamiques
+    const tierCollaterals = [].concat(req.body.tierCollateral || []);
+    const tierRates       = [].concat(req.body.tierRate || []);
+    for (let i = 0; i < tierCollaterals.length; i++) {
+      const mc = parseFloat(tierCollaterals[i]);
+      const rp = parseFloat(tierRates[i]);
+      if (mc > 0 && rp > 0) standards.tiers.push({ maxCollateral: mc, ratePerM3: rp });
+    }
+    standards.tiers.sort((a, b) => a.maxCollateral - b.maxCollateral);
+    setSetting('freight_standards', standards);
+  }
+
+  if (section === 'discord') {
+    setSetting('discord_webhook_url', (req.body.webhookUrl || '').trim());
+    setSetting('discord_notifications', req.body.discordEnabled === 'on' ? 'true' : 'false');
+  }
+
+  if (section === 'stations') {
+    const raw = (req.body.stations || '').trim();
+    const list = raw.split('\n').map(s => s.trim()).filter(Boolean);
+    setSetting('common_stations', list);
+  }
+
+  if (section === 'cache') {
+    const dur = parseInt(req.body.cacheDuration) || 5;
+    setSetting('cache_duration', String(dur));
+    // Invalider le cache actuel
+    _contractsCache = null;
+    _contractsCacheExpiry = 0;
+  }
+
+  if (section === 'admins') {
+    const raw = (req.body.adminIds || '').trim();
+    const ids = raw.split('\n').map(s => parseInt(s.trim())).filter(Boolean);
+    setSetting('admin_ids', ids);
+  }
+
+  res.redirect('/admin');
 });
 
 // LANGUE

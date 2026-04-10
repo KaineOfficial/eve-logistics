@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin — TSLC</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container wide">
+    <div class="page-header">
+      <h1>Admin Panel</h1>
+    </div>
+
+    <!-- ═══ HAULING STANDARDS ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title">Hauling Standards</h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="standards">
+        <div class="admin-grid">
+          <div class="form-group">
+            <label>Max Volume (m³)</label>
+            <input type="number" name="maxVolume" value="<%= standards.maxVolume %>">
+          </div>
+          <div class="form-group">
+            <label>Max Collateral (ISK)</label>
+            <input type="number" name="maxCollateral" value="<%= standards.maxCollateral %>">
+          </div>
+          <div class="form-group">
+            <label>Expiration (weeks)</label>
+            <input type="number" name="expirationWeeks" value="<%= standards.expirationWeeks %>">
+          </div>
+          <div class="form-group">
+            <label>Days to complete</label>
+            <input type="number" name="daysToComplete" value="<%= standards.daysToComplete %>">
+          </div>
+        </div>
+
+        <h3 class="admin-subtitle">Pricing Tiers</h3>
+        <div id="tiers-container">
+          <% standards.tiers.forEach((tier, i) => { %>
+            <div class="tier-row">
+              <div class="form-group">
+                <label>Max Collateral (ISK)</label>
+                <input type="number" name="tierCollateral" value="<%= tier.maxCollateral %>">
+              </div>
+              <div class="form-group">
+                <label>Rate (ISK/m³)</label>
+                <input type="number" name="tierRate" value="<%= tier.ratePerM3 %>">
+              </div>
+              <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+            </div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-add" onclick="addTier()">+ Add Tier</button>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save Standards</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ═══ DISCORD ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title">Discord Notifications</h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="discord">
+        <div class="form-group">
+          <label>Webhook URL</label>
+          <input type="text" name="webhookUrl" value="<%= webhookUrl %>" placeholder="https://discord.com/api/webhooks/...">
+        </div>
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" name="discordEnabled" <%= discordEnabled ? 'checked' : '' %>>
+            Enable notifications for new contracts
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save Discord</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ═══ STATIONS ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title">Common Stations (fallback)</h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="stations">
+        <div class="form-group">
+          <label>One station per line</label>
+          <textarea name="stations" rows="8"><%= stations.join('\n') %></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save Stations</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ═══ CACHE ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title">ESI Cache</h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="cache">
+        <div class="form-group">
+          <label>Cache duration (minutes)</label>
+          <input type="number" name="cacheDuration" value="<%= cacheDuration %>" min="1" max="60">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save & Clear Cache</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ═══ ADMINS ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title">Admin Characters</h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="admins">
+        <div class="form-group">
+          <label>Character IDs (one per line)</label>
+          <textarea name="adminIds" rows="4"><%= adminIds.join('\n') %></textarea>
+        </div>
+        <p class="admin-hint">Your character ID: <strong><%= character.id %></strong> — Do not remove yourself!</p>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save Admins</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    function addTier() {
+      const container = document.getElementById('tiers-container');
+      const row = document.createElement('div');
+      row.className = 'tier-row';
+      row.innerHTML = `
+        <div class="form-group">
+          <label>Max Collateral (ISK)</label>
+          <input type="number" name="tierCollateral" value="0">
+        </div>
+        <div class="form-group">
+          <label>Rate (ISK/m³)</label>
+          <input type="number" name="tierRate" value="0">
+        </div>
+        <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(row);
+    }
+  </script>
+</body>
+</html>

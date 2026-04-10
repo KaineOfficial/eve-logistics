@@ -8,6 +8,9 @@
     <% } %>
   </div>
   <div class="navbar-right">
+    <% if (isAdmin) { %>
+      <a href="/admin" class="nav-btn admin">Admin</a>
+    <% } %>
     <% if (character) { %>
       <a href="/logout" class="nav-btn logout"><%= t.nav.logout %></a>
     <% } else { %>
