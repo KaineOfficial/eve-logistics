@@ -266,21 +266,46 @@ app.post('/freight/new', requireMember, (req, res) => {
   res.redirect('/freight');
 });
 
-// ── RECHERCHE STATIONS (ESI public) ──────────────────────────────────────
+// ── RECHERCHE STATIONS ───────────────────────────────────────────────────
+
+// Stations NPC principales (fallback instantané si ESI indisponible)
+const COMMON_STATIONS = [
+  'Jita IV - Moon 4 - Caldari Navy Assembly Plant',
+  'Amarr VIII (Oris) - Emperor Family Academy',
+  'Dodixie IX - Moon 20 - Federation Navy Assembly Plant',
+  'Rens VI - Moon 8 - Brutor Tribe Treasury',
+  'Hek VIII - Moon 12 - Boundless Creation Factory',
+  'Perimeter - Tranquility Trading Tower',
+  'Niarja - TTT - Tranquility Trading Tower',
+  'Oursulaert VIII - Moon 3 - Federation Navy Assembly Plant',
+  'Tash-Murkon Prime II - Moon 1 - Kaalakiota Corporation Factory',
+];
 
 app.get('/api/stations', async (req, res) => {
-  const q = (req.query.q || '').trim();
+  const q = (req.query.q || '').trim().toLowerCase();
   if (q.length < 3) return res.json([]);
+
+  // Correspondances locales (toujours disponibles)
+  const localMatches = COMMON_STATIONS.filter(s => s.toLowerCase().includes(q));
+
   try {
     const searchRes = await axios.get('https://esi.evetech.net/latest/search/', {
-      params: { categories: 'station', search: q, language: 'en', strict: false }
+      params: { categories: 'station', datasource: 'tranquility', search: q, language: 'en', strict: false },
+      headers:  { Accept: 'application/json' }
     });
-    const ids = (searchRes.data.station || []).slice(0, 10);
-    if (ids.length === 0) return res.json([]);
-    const namesRes = await axios.post('https://esi.evetech.net/latest/universe/names/', ids);
-    res.json(namesRes.data.map(n => n.name).sort());
-  } catch {
-    res.json([]);
+    const ids = (searchRes.data.station || []).slice(0, 8);
+    if (ids.length === 0) return res.json(localMatches.slice(0, 10));
+
+    const namesRes = await axios.post(
+      'https://esi.evetech.net/latest/universe/names/', ids,
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    const esiNames = namesRes.data.map(n => n.name);
+    const combined = [...new Set([...localMatches, ...esiNames])].sort().slice(0, 10);
+    res.json(combined);
+  } catch (err) {
+    console.error('[stations] ESI error:', err.response?.status, err.response?.data || err.message);
+    res.json(localMatches.slice(0, 10));
   }
 });
 
