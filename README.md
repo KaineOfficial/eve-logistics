@@ -21,8 +21,32 @@ Track courier contracts in real-time, calculate pricing per route, manage hauler
 
 - Node.js 18+
 - A VPS with Nginx + Certbot
-- Two EVE Online applications registered at https://developers.eveonline.com
+- **Two EVE Online applications** registered at https://developers.eveonline.com
 - A valid **license key**
+
+### Why two EVE apps?
+
+The panel needs two separate EVE applications for different purposes:
+
+- **App 1** handles **user login** — when alliance members click "Login with EVE Online", this app authenticates them via SSO. It only needs basic permissions to identify the player, their corporation, and alliance.
+- **App 2** handles **server-side ESI access** — this is the service account (authorized by the CEO or a director) that reads corporation contracts in the background. It needs elevated scopes to access contract data for the entire corporation.
+
+Separating them is more secure: regular users never get access to the sensitive corporation scopes, and the service account token is managed independently.
+
+### App 1 — User Login
+- **Purpose**: authenticate alliance members on the website
+- **Name**: anything (e.g. "My Alliance Panel")
+- **Callback URL**: `https://your-domain.com/callback`
+- **Scopes**: `publicData`
+- This gives you `CLIENT_ID` and `CLIENT_SECRET`
+
+### App 2 — Service Account (ESI access)
+- **Purpose**: read corporation contracts and search stations/structures in the background
+- **Name**: anything (e.g. "My Alliance Service")
+- **Callback URL**: `https://your-domain.com/callback` (same URL)
+- **Scopes**: `esi-contracts.read_corporation_contracts.v1 esi-search.search_structures.v1`
+- This gives you `SERVICE_CLIENT_ID` and `SERVICE_CLIENT_SECRET`
+- Must be authorized by a character with **CEO or Director** role in the corporation
 
 ## Installation
 
