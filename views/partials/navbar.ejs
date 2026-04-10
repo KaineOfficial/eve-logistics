@@ -14,7 +14,7 @@
       <a href="/admin" class="nav-btn admin">Admin</a>
     <% } %>
     <% if (character) { %>
-      <span class="role-badge role-<%= userRole %>"><%= userRole %></span>
+      <% if (!isDirector) { %><span class="role-badge role-<%= userRole %>"><%= userRole %></span><% } %>
       <a href="/logout" class="nav-btn logout"><%= t.nav.logout %></a>
     <% } else { %>
       <a href="/login" class="nav-btn"><%= t.nav.login %></a>
