@@ -57,6 +57,20 @@ pm2 save
 
 4. Visit `https://your-domain.com/service-setup` and log in with a CEO/director character to authorize ESI access.
 
+## Pricing
+
+| Plan | Price | Details |
+|---|---|---|
+| **Monthly** | 500M ISK / month | Cancel anytime |
+| **Yearly** | 4B ISK / year | Save 2B vs monthly |
+| **Permanent** | 8B ISK | One-time payment, lifetime access |
+
+All plans include:
+- Full panel with all features
+- License key locked to your alliance
+- Access to updates
+- Setup support
+
 ## License
 
 This software requires a valid license key. The panel verifies the license at startup against a remote server. If the server is temporarily unreachable, a 24-hour local cache is used.
