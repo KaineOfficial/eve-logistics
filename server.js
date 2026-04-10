@@ -39,6 +39,17 @@ const tokenUrl    = 'https://login.eveonline.com/v2/oauth/token';
 const scopes      = process.env.SCOPES || 'publicData';
 const allianceId  = parseInt(process.env.ALLIANCE_ID);
 
+// ── Configuration fret ────────────────────────────────────────────────────
+const FREIGHT_CONFIG = {
+  maxVolume:     200_000,
+  maxCollateral: 10_000_000_000,
+  tiers: [
+    { maxCollateral: 1_000_000_000,  ratePerM3: 600  },
+    { maxCollateral: 5_000_000_000,  ratePerM3: 950  },
+    { maxCollateral: 10_000_000_000, ratePerM3: 1250 },
+  ]
+};
+
 // ── Token du compte service (cache mémoire + rotation en DB) ─────────────
 let _serviceToken = null;
 let _serviceTokenExpiry = 0;
@@ -227,11 +238,16 @@ app.get('/freight', requireMember, (_req, res) => {
 });
 
 app.get('/freight/new', requireMember, (_req, res) => {
-  res.render('freight-new');
+  res.render('freight-new', { freightConfig: FREIGHT_CONFIG });
 });
 
 app.post('/freight/new', requireMember, (req, res) => {
   const { pickup, destination, volume, collateral, reward, notes } = req.body;
+
+  const vol = parseFloat(volume) || 0;
+  const col = parseFloat(collateral) || 0;
+  if (vol > FREIGHT_CONFIG.maxVolume)     return res.status(400).send('Volume trop élevé (max 200 000 m³)');
+  if (col > FREIGHT_CONFIG.maxCollateral) return res.status(400).send('Collateral trop élevé (max 10B ISK)');
 
   db.prepare(`
     INSERT INTO requests (char_name, char_id, pickup, destination, volume, collateral, reward, notes)
@@ -241,13 +257,31 @@ app.post('/freight/new', requireMember, (req, res) => {
     req.session.character.id,
     pickup.trim(),
     destination.trim(),
-    parseFloat(volume) || 0,
-    parseFloat(collateral) || 0,
+    vol,
+    col,
     parseFloat(reward) || 0,
     (notes || '').trim()
   );
 
   res.redirect('/freight');
+});
+
+// ── RECHERCHE STATIONS (ESI public) ──────────────────────────────────────
+
+app.get('/api/stations', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 3) return res.json([]);
+  try {
+    const searchRes = await axios.get('https://esi.evetech.net/latest/search/', {
+      params: { categories: 'station', search: q, language: 'en', strict: false }
+    });
+    const ids = (searchRes.data.station || []).slice(0, 10);
+    if (ids.length === 0) return res.json([]);
+    const namesRes = await axios.post('https://esi.evetech.net/latest/universe/names/', ids);
+    res.json(namesRes.data.map(n => n.name).sort());
+  } catch {
+    res.json([]);
+  }
 });
 
 // ── HAULER ────────────────────────────────────────────────────────────────
