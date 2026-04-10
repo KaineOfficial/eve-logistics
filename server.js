@@ -18,9 +18,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: false }));
 
-// Rate limiting
-app.use(rateLimit({ windowMs: 60 * 1000, max: 60 }));
-app.use('/api/', rateLimit({ windowMs: 60 * 1000, max: 20 }));
+// Rate limiting (après static pour ne pas compter CSS/JS/images)
+app.use('/api/', rateLimit({ windowMs: 60 * 1000, max: 30 }));
 app.use('/admin', rateLimit({ windowMs: 60 * 1000, max: 30 }));
 
 app.use(session({
