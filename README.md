@@ -97,8 +97,10 @@ All plans include:
 
 ## License
 
-This software requires a valid license key. The panel verifies the license at startup against a remote server. If the server is temporarily unreachable, a 24-hour local cache is used.
+This software requires a valid license key. The panel verifies the license against a remote server at startup and periodically during operation. If the server is temporarily unreachable, a 24-hour local cache is used.
 
 Without a valid license, the panel will not start.
+
+Modifying, reverse-engineering, or circumventing the license system is prohibited.
 
 Contact **Yashiro Yamamoto** in-game or via Discord for pricing and licensing.
