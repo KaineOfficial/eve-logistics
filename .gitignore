@@ -1,6 +1,0 @@
-node_modules/
-.env
-*.log
-.license-cache.json
-freight.db
-sessions/
