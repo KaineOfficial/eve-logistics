@@ -116,23 +116,6 @@
     </div>
     <% } %>
 
-    <!-- ═══ ADMINS ═══ -->
-    <% if (isAdmin) { %>
-    <div class="admin-section">
-      <h2 class="admin-section-title"><%= t.admin.admins %></h2>
-      <form method="POST" action="/admin/settings">
-        <input type="hidden" name="section" value="admins">
-        <div class="form-group">
-          <label><%= t.admin.adminIds %></label>
-          <textarea name="adminIds" rows="4"><%= adminIds.join('\n') %></textarea>
-        </div>
-        <p class="admin-hint"><%= t.admin.adminHint %> <strong><%= character.id %></strong> — <%= t.admin.adminWarn %></p>
-        <div class="form-actions">
-          <button type="submit" class="submit-btn"><%= t.admin.saveAdmins %></button>
-        </div>
-      </form>
-    </div>
-    <% } %>
 
     <!-- ═══ ROLES ═══ -->
     <% if (isAdmin) { %>
