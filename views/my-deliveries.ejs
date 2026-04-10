@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <%- include('partials/head') %>
+  <title><%= t.myDeliveries.title %> — EVE Logistics</title>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container wide">
+    <div class="page-header">
+      <h1><%= t.myDeliveries.title %></h1>
+    </div>
+
+    <div class="stat-cards">
+      <div class="stat-card delivered">
+        <div class="stat-number"><%= stats.delivered %></div>
+        <div class="stat-label"><%= t.myDeliveries.delivered %></div>
+      </div>
+      <div class="stat-card in-transit">
+        <div class="stat-number"><%= stats.in_progress %></div>
+        <div class="stat-label"><%= t.myDeliveries.inProgress %></div>
+      </div>
+      <div class="stat-card pending">
+        <div class="stat-number"><%= stats.totalVolume.toLocaleString() %></div>
+        <div class="stat-label"><%= t.myDeliveries.totalVolume %></div>
+      </div>
+      <div class="stat-card accepted">
+        <div class="stat-number"><%= stats.totalReward.toLocaleString() %></div>
+        <div class="stat-label"><%= t.myDeliveries.totalReward %></div>
+      </div>
+    </div>
+
+    <% if (contracts.length === 0) { %>
+      <p class="no-contracts"><%= t.myDeliveries.noDeliveries %></p>
+    <% } else { %>
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th><%= t.freight.colId %></th>
+            <th><%= t.freight.colRequester %></th>
+            <th><%= t.freight.colFrom %></th>
+            <th><%= t.freight.colTo %></th>
+            <th><%= t.freight.colVolume %></th>
+            <th><%= t.freight.colReward %></th>
+            <th><%= t.freight.colStatus %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% contracts.forEach(c => { %>
+            <tr>
+              <td>#<%= c.contract_id %></td>
+              <td><%= c.issuer_name %></td>
+              <td><%= c.start_name %></td>
+              <td><%= c.end_name %></td>
+              <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+              <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+              <td><span class="status-badge status-<%= c.status %>"><%= t.status[c.status] || c.status %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

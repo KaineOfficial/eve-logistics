@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <%- include('partials/head') %>
+  <title><%= t.admin.title %> — EVE Logistics</title>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast" style="display:none">Saved!</div>
+
+  <div class="container wide">
+    <div class="page-header">
+      <h1><%= t.admin.title %></h1>
+    </div>
+
+    <!-- ═══ HAULING STANDARDS ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.standards %></h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="standards">
+        <div class="admin-grid">
+          <div class="form-group">
+            <label><%= t.admin.maxVolume %></label>
+            <input type="number" name="maxVolume" value="<%= standards.maxVolume %>">
+          </div>
+          <div class="form-group">
+            <label><%= t.admin.maxCollateral %></label>
+            <input type="number" name="maxCollateral" value="<%= standards.maxCollateral %>">
+          </div>
+          <div class="form-group">
+            <label><%= t.admin.expirationWeeks %></label>
+            <input type="number" name="expirationWeeks" value="<%= standards.expirationWeeks %>">
+          </div>
+          <div class="form-group">
+            <label><%= t.admin.daysToComplete %></label>
+            <input type="number" name="daysToComplete" value="<%= standards.daysToComplete %>">
+          </div>
+        </div>
+
+        <h3 class="admin-subtitle"><%= t.admin.pricingTiers %></h3>
+        <div id="tiers-container">
+          <% standards.tiers.forEach((tier, i) => { %>
+            <div class="tier-row">
+              <div class="form-group">
+                <label><%= t.admin.tierCollateral %></label>
+                <input type="number" name="tierCollateral" value="<%= tier.maxCollateral %>">
+              </div>
+              <div class="form-group">
+                <label><%= t.admin.tierRate %></label>
+                <input type="number" name="tierRate" value="<%= tier.ratePerM3 %>">
+              </div>
+              <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+            </div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-add" onclick="addTier()"><%= t.admin.addTier %></button>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn"><%= t.admin.saveStandards %></button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ═══ DISCORD ═══ -->
+    <% if (isAdmin) { %>
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.discord %></h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="discord">
+        <div class="form-group">
+          <label><%= t.admin.webhookUrl %></label>
+          <input type="text" name="webhookUrl" value="<%= webhookUrl %>" placeholder="https://discord.com/api/webhooks/...">
+        </div>
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" name="discordEnabled" <%= discordEnabled ? 'checked' : '' %>>
+            <%= t.admin.enableDiscord %>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn"><%= t.admin.saveDiscord %></button>
+        </div>
+      </form>
+
+      <!-- Discord events -->
+      <form method="POST" action="/admin/settings" style="margin-top:16px;padding-top:16px;border-top:1px solid #334155">
+        <input type="hidden" name="section" value="discord_events">
+        <h3 class="admin-subtitle">Event Notifications</h3>
+        <div class="admin-grid">
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" name="evt_new" <%= discordEvents.new ? 'checked' : '' %>> New contract</label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" name="evt_accepted" <%= discordEvents.accepted ? 'checked' : '' %>> Contract accepted</label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" name="evt_delivered" <%= discordEvents.delivered ? 'checked' : '' %>> Contract delivered</label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" name="evt_failed" <%= discordEvents.failed ? 'checked' : '' %>> Contract failed/cancelled</label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save Events</button>
+        </div>
+      </form>
+    </div>
+    <% } %>
+
+    <!-- ═══ STATIONS ═══ -->
+    <% if (isAdmin) { %>
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.stations %></h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="stations">
+        <div class="form-group">
+          <label><%= t.admin.stationsHint %></label>
+          <textarea name="stations" rows="8"><%= stations.join('\n') %></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn"><%= t.admin.saveStations %></button>
+        </div>
+      </form>
+    </div>
+    <% } %>
+
+    <!-- ═══ CACHE ═══ -->
+    <% if (isAdmin) { %>
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.cache %></h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="cache">
+        <div class="form-group">
+          <label><%= t.admin.cacheDuration %></label>
+          <input type="number" name="cacheDuration" value="<%= cacheDuration %>" min="1" max="60">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn"><%= t.admin.saveCache %></button>
+        </div>
+      </form>
+    </div>
+    <% } %>
+
+
+    <!-- ═══ ROLES ═══ -->
+    <% if (isAdmin) { %>
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.rolesTitle || 'Roles' %></h2>
+
+      <% if (roles.length > 0) { %>
+        <table class="contracts-table" style="margin-bottom:16px">
+          <thead>
+            <tr>
+              <th>Character</th>
+              <th>ID</th>
+              <th><%= t.admin.logAction %></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% roles.forEach(r => { %>
+              <tr>
+                <td>
+                  <div class="hauler-profile">
+                    <img src="https://images.evetech.net/characters/<%= r.char_id %>/portrait?size=32" class="hauler-avatar">
+                    <span><%= r.char_name %></span>
+                  </div>
+                </td>
+                <td><%= r.char_id %></td>
+                <td><span class="role-badge role-<%= r.role %>"><%= r.role %></span></td>
+                <td>
+                  <% if (r.char_id !== character.id) { %>
+                    <form method="POST" action="/admin/roles/<%= r.char_id %>/delete" style="display:inline" onsubmit="return confirm('Remove role?')">
+                      <button type="submit" class="btn-remove-tier">X</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+
+      <form method="POST" action="/admin/roles" class="admin-grid" style="gap:8px;align-items:flex-end">
+        <div class="form-group">
+          <label>Character ID</label>
+          <input type="number" name="charId" required>
+        </div>
+        <div class="form-group">
+          <label>Character Name</label>
+          <input type="text" name="charName" required>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select name="role" class="search-input" style="cursor:pointer">
+            <option value="admin">Admin</option>
+            <option value="director">Director</option>
+            <option value="hauler">Hauler</option>
+            <option value="member">Member</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="submit-btn" style="margin:0">+</button>
+        </div>
+      </form>
+    </div>
+    <% } %>
+
+    <!-- ═══ ROUTES SPÉCIALES ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.routes %></h2>
+
+      <% routes.forEach(route => { %>
+        <div class="route-card <%= route.active ? '' : 'route-inactive' %>">
+          <div class="route-header">
+            <strong><%= route.point_a %> ↔ <%= route.point_b %></strong>
+            <div class="route-actions">
+              <form method="POST" action="/admin/routes/<%= route.id %>/toggle" style="display:inline">
+                <button type="submit" class="btn-toggle <%= route.active ? 'active' : '' %>"><%= route.active ? 'ON' : 'OFF' %></button>
+              </form>
+              <form method="POST" action="/admin/routes/<%= route.id %>/delete" style="display:inline" onsubmit="return confirm('<%= t.admin.deleteConfirm %>')">
+                <button type="submit" class="btn-remove-tier">X</button>
+              </form>
+            </div>
+          </div>
+          <form method="POST" action="/admin/routes/<%= route.id %>/update">
+            <div class="admin-grid">
+              <div class="form-group">
+                <label><%= t.admin.pointA %></label>
+                <input type="text" name="point_a" value="<%= route.point_a %>">
+              </div>
+              <div class="form-group">
+                <label><%= t.admin.pointB %></label>
+                <input type="text" name="point_b" value="<%= route.point_b %>">
+              </div>
+              <div class="form-group">
+                <label><%= t.admin.maxVolume %></label>
+                <input type="number" name="max_volume" value="<%= route.max_volume %>">
+              </div>
+              <div class="form-group">
+                <label><%= t.admin.expirationWeeks %></label>
+                <input type="number" name="expiration_weeks" value="<%= route.expiration_weeks %>">
+              </div>
+              <div class="form-group">
+                <label><%= t.admin.daysToComplete %></label>
+                <input type="number" name="days_to_complete" value="<%= route.days_to_complete %>">
+              </div>
+              <div class="form-group">
+                <label><%= t.admin.surcharge %></label>
+                <input type="number" name="surcharge" value="<%= route.surcharge %>">
+              </div>
+              <div class="form-group" style="grid-column: span 2">
+                <label><%= t.admin.surchargeLabel %></label>
+                <input type="text" name="surcharge_label" value="<%= route.surcharge_label %>">
+              </div>
+            </div>
+            <h3 class="admin-subtitle"><%= t.admin.pricingTiers %></h3>
+            <% route.tiers.forEach(tier => { %>
+              <div class="tier-row">
+                <div class="form-group">
+                  <label><%= t.admin.tierCollateral %></label>
+                  <input type="number" name="tierCollateral" value="<%= tier.maxCollateral %>">
+                </div>
+                <div class="form-group">
+                  <label><%= t.admin.tierRate %></label>
+                  <input type="number" name="tierRate" value="<%= tier.ratePerM3 %>">
+                </div>
+                <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+              </div>
+            <% }) %>
+            <div class="route-tiers-<%= route.id %>"></div>
+            <button type="button" class="btn-add" onclick="addRouteTier(<%= route.id %>)"><%= t.admin.addTier %></button>
+            <div class="form-actions">
+              <button type="submit" class="submit-btn"><%= t.admin.saveRoute %></button>
+            </div>
+          </form>
+        </div>
+      <% }) %>
+
+      <!-- New route form -->
+      <details class="new-route-details">
+        <summary class="btn-add" style="margin-top:16px;display:inline-block;cursor:pointer"><%= t.admin.addRoute %></summary>
+        <form method="POST" action="/admin/routes" style="margin-top:12px">
+          <div class="admin-grid">
+            <div class="form-group">
+              <label><%= t.admin.pointA %></label>
+              <input type="text" name="point_a" required>
+            </div>
+            <div class="form-group">
+              <label><%= t.admin.pointB %></label>
+              <input type="text" name="point_b" required>
+            </div>
+            <div class="form-group">
+              <label><%= t.admin.maxVolume %></label>
+              <input type="number" name="max_volume" value="200000">
+            </div>
+            <div class="form-group">
+              <label><%= t.admin.expirationWeeks %></label>
+              <input type="number" name="expiration_weeks" value="4">
+            </div>
+            <div class="form-group">
+              <label><%= t.admin.daysToComplete %></label>
+              <input type="number" name="days_to_complete" value="7">
+            </div>
+            <div class="form-group">
+              <label><%= t.admin.surcharge %></label>
+              <input type="number" name="surcharge" value="0">
+            </div>
+            <div class="form-group" style="grid-column: span 2">
+              <label><%= t.admin.surchargeLabel %></label>
+              <input type="text" name="surcharge_label">
+            </div>
+          </div>
+          <h3 class="admin-subtitle"><%= t.admin.pricingTiers %></h3>
+          <div id="new-route-tiers">
+            <div class="tier-row">
+              <div class="form-group">
+                <label><%= t.admin.tierCollateral %></label>
+                <input type="number" name="tierCollateral" value="0">
+              </div>
+              <div class="form-group">
+                <label><%= t.admin.tierRate %></label>
+                <input type="number" name="tierRate" value="0">
+              </div>
+              <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+            </div>
+          </div>
+          <button type="button" class="btn-add" onclick="addNewRouteTier()"><%= t.admin.addTier %></button>
+          <div class="form-actions">
+            <button type="submit" class="submit-btn"><%= t.admin.createRoute %></button>
+          </div>
+        </form>
+      </details>
+    </div>
+
+    <!-- ═══ JUMP CALCULATION ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.jumps %></h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="jumps">
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" name="jumpEnabled" <%= jumpEnabled ? 'checked' : '' %>>
+            <%= t.admin.enableJumps %>
+          </label>
+        </div>
+        <div class="admin-grid">
+          <div class="form-group">
+            <label><%= t.admin.jumpPrice %></label>
+            <input type="number" name="jumpPrice" value="<%= jumpPrice %>" min="0">
+          </div>
+          <div class="form-group">
+            <label><%= t.admin.jumpCacheHours %></label>
+            <input type="number" name="jumpCacheHours" value="<%= jumpCacheHours %>" min="1" max="168">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn"><%= t.admin.saveJumps %></button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ═══ MAINTENANCE ═══ -->
+    <% if (isAdmin) { %>
+    <div class="admin-section">
+      <h2 class="admin-section-title">Maintenance Mode</h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="maintenance">
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" name="maintenanceEnabled" <%= maintenanceEnabled ? 'checked' : '' %>>
+            Enable maintenance mode
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <input type="text" name="maintenanceMessage" value="<%= maintenanceMessage %>">
+        </div>
+        <p class="admin-hint">Admins can still access the site during maintenance.</p>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save Maintenance</button>
+        </div>
+      </form>
+    </div>
+    <% } %>
+
+    <!-- ═══ PRICE HISTORY ═══ -->
+    <% if (priceHistory.length > 0) { %>
+    <div class="admin-section">
+      <h2 class="admin-section-title">Price History</h2>
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th><%= t.admin.logDate %></th>
+            <th>Admin</th>
+            <th>Target</th>
+            <th>Old</th>
+            <th>New</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% priceHistory.forEach(p => { %>
+            <tr>
+              <td style="white-space:nowrap"><%= new Date(p.created_at).toLocaleString() %></td>
+              <td><%= p.char_name %></td>
+              <td><span class="status-badge status-outstanding"><%= p.target %></span></td>
+              <td style="font-size:0.75rem;color:#f87171;max-width:200px;overflow:hidden;text-overflow:ellipsis"><%= (p.old_value || '').substring(0, 100) %></td>
+              <td style="font-size:0.75rem;color:#4ade80;max-width:200px;overflow:hidden;text-overflow:ellipsis"><%= (p.new_value || '').substring(0, 100) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <!-- ═══ STATUS ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.status %></h2>
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-label"><%= t.admin.esiCache %></span>
+          <span class="status-value <%= cacheStatus.active ? 'status-ok' : 'status-off' %>">
+            <%= cacheStatus.active ? t.admin.active : t.admin.inactive %>
+          </span>
+        </div>
+        <div class="status-item">
+          <span class="status-label"><%= t.admin.contractsCached %></span>
+          <span class="status-value"><%= cacheStatus.count %></span>
+        </div>
+        <div class="status-item">
+          <span class="status-label"><%= t.admin.cacheExpires %></span>
+          <span class="status-value"><%= cacheStatus.expiry ? new Date(cacheStatus.expiry).toLocaleString() : '—' %></span>
+        </div>
+        <div class="status-item">
+          <span class="status-label"><%= t.admin.appVersion %></span>
+          <span class="status-value"><%= version %></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ACTIVITY LOGS ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.activityLog %></h2>
+      <% if (logs.length === 0) { %>
+        <p class="no-contracts"><%= t.admin.noActivity %></p>
+      <% } else { %>
+        <table class="contracts-table">
+          <thead>
+            <tr>
+              <th><%= t.admin.logDate %></th>
+              <th><%= t.admin.logAdmin %></th>
+              <th><%= t.admin.logAction %></th>
+              <th><%= t.admin.logDetails %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% logs.forEach(log => { %>
+              <tr>
+                <td style="white-space:nowrap"><%= new Date(log.created_at).toLocaleString() %></td>
+                <td><%= log.char_name %></td>
+                <td><span class="status-badge status-outstanding"><%= log.action %></span></td>
+                <td style="font-size:0.8rem;color:#94a3b8;max-width:300px;overflow:hidden;text-overflow:ellipsis"><%= log.details %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% if (logTotalPages > 1) { %>
+          <div class="pagination" style="margin-top:12px">
+            <a href="/admin?logPage=1" class="page-btn <%= logPage === 1 ? 'active' : '' %>">&laquo;</a>
+            <% for (let p = Math.max(1, logPage - 2); p <= Math.min(logTotalPages, logPage + 2); p++) { %>
+              <a href="/admin?logPage=<%= p %>" class="page-btn <%= p === logPage ? 'active' : '' %>"><%= p %></a>
+            <% } %>
+            <a href="/admin?logPage=<%= logTotalPages %>" class="page-btn <%= logPage === logTotalPages ? 'active' : '' %>">&raquo;</a>
+          </div>
+        <% } %>
+      <% } %>
+    </div>
+
+  </div>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    function addRouteTier(routeId) {
+      const container = document.querySelector('.route-tiers-' + routeId);
+      const row = document.createElement('div');
+      row.className = 'tier-row';
+      row.innerHTML = `
+        <div class="form-group"><label><%= t.admin.tierCollateral %></label><input type="number" name="tierCollateral" value="0"></div>
+        <div class="form-group"><label><%= t.admin.tierRate %></label><input type="number" name="tierRate" value="0"></div>
+        <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function addNewRouteTier() {
+      const container = document.getElementById('new-route-tiers');
+      const row = document.createElement('div');
+      row.className = 'tier-row';
+      row.innerHTML = `
+        <div class="form-group"><label><%= t.admin.tierCollateral %></label><input type="number" name="tierCollateral" value="0"></div>
+        <div class="form-group"><label><%= t.admin.tierRate %></label><input type="number" name="tierRate" value="0"></div>
+        <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function addTier() {
+      const container = document.getElementById('tiers-container');
+      const row = document.createElement('div');
+      row.className = 'tier-row';
+      row.innerHTML = `
+        <div class="form-group">
+          <label><%= t.admin.tierCollateral %></label>
+          <input type="number" name="tierCollateral" value="0">
+        </div>
+        <div class="form-group">
+          <label><%= t.admin.tierRate %></label>
+          <input type="number" name="tierRate" value="0">
+        </div>
+        <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(row);
+    }
+
+    // Toast notification
+    if (window.location.search.includes('saved=1')) {
+      const toast = document.getElementById('toast');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+      history.replaceState(null, '', '/admin');
+    }
+
+    // Character search for roles
+    const charIdInput = document.querySelector('input[name="charId"]');
+    const charNameInput = document.querySelector('input[name="charName"]');
+    if (charNameInput) {
+      let searchTimeout;
+      charNameInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const q = charNameInput.value.trim();
+        if (q.length < 3) return;
+        searchTimeout = setTimeout(async () => {
+          try {
+            const res = await fetch('/api/character-search?q=' + encodeURIComponent(q));
+            const data = await res.json();
+            if (data.length > 0) {
+              // Auto-fill first match
+              const dropdown = document.getElementById('char-search-dropdown');
+              if (dropdown) dropdown.remove();
+              const dd = document.createElement('div');
+              dd.id = 'char-search-dropdown';
+              dd.className = 'autocomplete-dropdown';
+              dd.style.position = 'absolute';
+              dd.style.zIndex = '50';
+              data.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.textContent = c.name + ' (#' + c.id + ')';
+                item.onclick = () => {
+                  charIdInput.value = c.id;
+                  charNameInput.value = c.name;
+                  dd.remove();
+                };
+                dd.appendChild(item);
+              });
+              charNameInput.parentElement.style.position = 'relative';
+              charNameInput.parentElement.appendChild(dd);
+            }
+          } catch {}
+        }, 400);
+      });
+      document.addEventListener('click', e => {
+        const dd = document.getElementById('char-search-dropdown');
+        if (dd && !dd.contains(e.target) && e.target !== charNameInput) dd.remove();
+      });
+    }
+  </script>
+</body>
+</html>

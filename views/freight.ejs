@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <%- include('partials/head') %>
+  <title><%= t.freight.title %> — EVE Logistics</title>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container wide">
+    <div class="page-header">
+      <h1><%= t.freight.title %></h1>
+    </div>
+
+    <!-- Carte standards de hauling -->
+    <div class="standards-card">
+      <div class="standards-header">
+        <span class="standards-title"><%= t.freight.standardsTitle %></span>
+      </div>
+      <div class="standards-body">
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsVolume %></div>
+          <div class="standards-value"><%= standards.maxVolume.toLocaleString() %> m³</div>
+        </div>
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsCost %></div>
+          <div class="standards-tiers">
+            <% standards.tiers.forEach(tier => { %>
+              <div class="standards-tier">
+                <span class="tier-limit">&le; <%= (tier.maxCollateral / 1e9).toLocaleString() %> B ISK</span>
+                <span class="tier-rate"><%= tier.ratePerM3.toLocaleString() %> ISK/m³</span>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsExpiry %></div>
+          <div class="standards-value"><%= standards.expirationWeeks %> <%= t.freight.standardsWeeks %></div>
+        </div>
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsDays %></div>
+          <div class="standards-value"><%= standards.daysToComplete %> <%= t.freight.standardsDaysUnit %></div>
+        </div>
+      </div>
+    </div>
+
+    <% if (contracts.length === 0) { %>
+      <p class="no-contracts"><%= t.freight.noRequests %></p>
+    <% } else { %>
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th><%= t.freight.colId %></th>
+            <th><%= t.freight.colRequester %></th>
+            <th><%= t.freight.colFrom %></th>
+            <th><%= t.freight.colTo %></th>
+            <th><%= t.freight.colVolume %></th>
+            <th><%= t.freight.colCollateral %></th>
+            <th><%= t.freight.colReward %></th>
+            <th><%= t.freight.colStatus %></th>
+            <th><%= t.freight.colHauler %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% contracts.forEach(c => { %>
+            <tr>
+              <td>#<%= c.contract_id %></td>
+              <td><%= c.issuer_name %></td>
+              <td><%= c.start_name %></td>
+              <td><%= c.end_name %></td>
+              <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+              <td><%= c.collateral ? c.collateral.toLocaleString() + ' ISK' : '—' %></td>
+              <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+              <td><span class="status-badge status-<%= c.status %>"><%= t.status[c.status] || c.status %></span></td>
+              <td><%= c.acceptor_name || '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

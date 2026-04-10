@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <%- include('partials/head') %>
+  <title><%= t.hauler.title %> — EVE Logistics</title>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container wide">
+    <h1><%= t.hauler.title %></h1>
+    <p class="hauler-note"><%= t.hauler.inGameNote %></p>
+
+    <% if (contracts.length === 0) { %>
+      <p class="no-contracts"><%= t.hauler.noRequests %></p>
+    <% } else { %>
+
+      <%
+        const outstanding = contracts.filter(c => c.status === 'outstanding');
+        const inProgress  = contracts.filter(c => c.status === 'in_progress');
+      %>
+
+      <% if (outstanding.length > 0) { %>
+        <div class="section-header">
+          <h2><%= t.status.outstanding %> <span class="badge badge-outstanding"><%= outstanding.length %></span></h2>
+        </div>
+        <table class="contracts-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><%= t.freight.colRequester %></th>
+              <th><%= t.freight.colFrom %></th>
+              <th><%= t.freight.colTo %></th>
+              <th><%= t.freight.colVolume %></th>
+              <th><%= t.freight.colCollateral %></th>
+              <th><%= t.freight.colReward %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% outstanding.forEach(c => { %>
+              <tr>
+                <td>#<%= c.contract_id %></td>
+                <td><%= c.issuer_name %></td>
+                <td><%= c.start_name %></td>
+                <td><%= c.end_name %></td>
+                <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+                <td><%= c.collateral ? c.collateral.toLocaleString() + ' ISK' : '—' %></td>
+                <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+
+      <% if (inProgress.length > 0) { %>
+        <div class="section-header" style="margin-top:24px;">
+          <h2><%= t.status.in_progress %> <span class="badge badge-inprogress"><%= inProgress.length %></span></h2>
+        </div>
+        <table class="contracts-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><%= t.freight.colRequester %></th>
+              <th><%= t.freight.colFrom %></th>
+              <th><%= t.freight.colTo %></th>
+              <th><%= t.freight.colVolume %></th>
+              <th><%= t.freight.colReward %></th>
+              <th><%= t.freight.colHauler %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% inProgress.forEach(c => { %>
+              <tr>
+                <td>#<%= c.contract_id %></td>
+                <td><%= c.issuer_name %></td>
+                <td><%= c.start_name %></td>
+                <td><%= c.end_name %></td>
+                <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+                <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+                <td><%= c.acceptor_name || '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+
+    <% } %>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

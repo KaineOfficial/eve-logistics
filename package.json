@@ -1,0 +1,22 @@
+{
+  "dependencies": {
+    "axios": "^1.14.0",
+    "dotenv": "^17.4.1",
+    "ejs": "^5.0.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "session-file-store": "^1.5.0",
+    "better-sqlite3": "^9.6.0",
+    "express-rate-limit": "^7.5.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "name": "eve-app",
+  "version": "1.1.7",
+  "main": "server.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

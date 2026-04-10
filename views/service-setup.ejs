@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <%- include('partials/head') %>
+  <title>Service Setup</title>
+</head>
+<body>
+  <div class="box" style="max-width:600px;">
+    <h1>Service Setup</h1>
+    <p>Personnage service connecté : <strong><%= characterName %></strong></p>
+    <p>Copie ce token dans ton <code>.env</code> sur le VPS :</p>
+
+    <div class="token-box">
+      <code>SERVICE_REFRESH_TOKEN=<%= refreshToken %></code>
+    </div>
+
+    <p style="color:#f59e0b; margin-top:16px;">
+      Ne partage jamais ce token. Ferme cette page après l'avoir copié.
+    </p>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

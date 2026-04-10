@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <%- include('partials/head') %>
+  <title><%= t.logistics.title %> — EVE Logistics</title>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container wide">
+    <div class="page-header">
+      <h1><%= t.logistics.title %></h1>
+    </div>
+
+    <!-- Carte standards de hauling -->
+    <div class="standards-card">
+      <div class="standards-header">
+        <span class="standards-title"><%= t.freight.standardsTitle %></span>
+      </div>
+      <div class="standards-body">
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsVolume %></div>
+          <div class="standards-value"><%= standards.maxVolume.toLocaleString() %> m³</div>
+        </div>
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsCost %></div>
+          <div class="standards-tiers">
+            <% standards.tiers.forEach(tier => { %>
+              <div class="standards-tier">
+                <span class="tier-limit">&le; <%= (tier.maxCollateral / 1e9).toLocaleString() %> B ISK</span>
+                <span class="tier-rate"><%= tier.ratePerM3.toLocaleString() %> ISK/m³</span>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsExpiry %></div>
+          <div class="standards-value"><%= standards.expirationWeeks %> <%= t.freight.standardsWeeks %></div>
+        </div>
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsDays %></div>
+          <div class="standards-value"><%= standards.daysToComplete %> <%= t.freight.standardsDaysUnit %></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Routes spéciales -->
+    <% if (routes.length > 0) { %>
+      <% routes.forEach(route => { %>
+        <div class="standards-card" style="margin-bottom:12px">
+          <div class="standards-header">
+            <span class="standards-title"><%= route.point_a %> ↔ <%= route.point_b %></span>
+          </div>
+          <div class="standards-body">
+            <div class="standards-section">
+              <div class="standards-label"><%= t.freight.standardsVolume %></div>
+              <div class="standards-value"><%= route.max_volume.toLocaleString() %> m³</div>
+            </div>
+            <div class="standards-section">
+              <div class="standards-label"><%= t.freight.standardsCost %></div>
+              <div class="standards-tiers">
+                <% route.tiers.forEach(tier => { %>
+                  <div class="standards-tier">
+                    <span class="tier-limit">&le; <%= (tier.maxCollateral / 1e9).toLocaleString() %> B ISK</span>
+                    <span class="tier-rate"><%= tier.ratePerM3.toLocaleString() %> ISK/m³</span>
+                  </div>
+                <% }) %>
+                <% if (route.surcharge > 0) { %>
+                  <div class="standards-tier">
+                    <span class="tier-limit"><%= route.surcharge_label || 'Surcharge' %></span>
+                    <span class="tier-rate">+<%= route.surcharge.toLocaleString() %> ISK</span>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+            <div class="standards-section">
+              <div class="standards-label"><%= t.freight.standardsExpiry %></div>
+              <div class="standards-value"><%= route.expiration_weeks %> <%= t.freight.standardsWeeks %></div>
+            </div>
+            <div class="standards-section">
+              <div class="standards-label"><%= t.freight.standardsDays %></div>
+              <div class="standards-value"><%= route.days_to_complete %> <%= t.freight.standardsDaysUnit %></div>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    <% } %>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <p class="hauler-note" style="margin:0"><%= t.hauler.inGameNote %></p>
+      <% if (isDirector) { %>
+        <a href="/api/export/csv" class="export-btn">CSV Export</a>
+      <% } %>
+    </div>
+
+    <!-- Filtres par statut -->
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-filter="all"><%= t.logistics.filterAll %> <span class="filter-count"><%= contracts.length %></span></button>
+      <button class="filter-btn" data-filter="outstanding"><%= t.status.outstanding %> <span class="filter-count"><%= contracts.filter(c => c.status === 'outstanding').length %></span></button>
+      <button class="filter-btn" data-filter="in_progress"><%= t.status.in_progress %> <span class="filter-count"><%= contracts.filter(c => c.status === 'in_progress').length %></span></button>
+      <button class="filter-btn" data-filter="finished"><%= t.status.finished %> <span class="filter-count"><%= contracts.filter(c => ['finished','finished_issuer','finished_contractor'].includes(c.status)).length %></span></button>
+      <button class="filter-btn" data-filter="cancelled"><%= t.status.cancelled %> <span class="filter-count"><%= contracts.filter(c => ['cancelled','rejected','failed','deleted','reversed'].includes(c.status)).length %></span></button>
+    </div>
+
+    <!-- Recherche -->
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="<%= t.logistics.searchPlaceholder || 'Search...' %>" class="search-input">
+    </div>
+
+    <% if (contracts.length === 0) { %>
+      <p class="no-contracts"><%= t.freight.noRequests %></p>
+    <% } else { %>
+      <table class="contracts-table sortable" id="contracts-table">
+        <thead>
+          <tr>
+            <th data-sort="text"><%= t.freight.colId %></th>
+            <th data-sort="text"><%= t.freight.colRequester %></th>
+            <th data-sort="text"><%= t.freight.colFrom %></th>
+            <th data-sort="text"><%= t.freight.colTo %></th>
+            <th data-sort="num"><%= t.freight.colVolume %></th>
+            <th data-sort="num"><%= t.freight.colCollateral %></th>
+            <th data-sort="num"><%= t.freight.colReward %></th>
+            <th data-sort="text"><%= t.freight.colStatus %></th>
+            <th data-sort="text"><%= t.freight.colHauler %></th>
+            <th data-sort="text"><%= t.logistics.colTimeLeft %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% contracts.forEach(c => { %>
+            <%
+              // Groupe de statut pour le filtre
+              let filterGroup = c.status;
+              if (['finished_issuer','finished_contractor'].includes(c.status)) filterGroup = 'finished';
+              if (['rejected','failed','deleted','reversed'].includes(c.status)) filterGroup = 'cancelled';
+
+              // Calcul temps restant
+              let timeLeft = '';
+              let expiryWarn = false;
+              const now = new Date();
+              if (c.status === 'outstanding' && c.date_expired) {
+                const diff = new Date(c.date_expired) - now;
+                if (diff > 0) {
+                  const days = Math.floor(diff / 86400000);
+                  const hrs  = Math.floor((diff % 86400000) / 3600000);
+                  timeLeft = days > 0 ? days + 'j ' + hrs + 'h' : hrs + 'h';
+                  if (diff < 48 * 3600000) expiryWarn = true;
+                }
+              } else if (c.status === 'in_progress' && c.date_accepted && c.days_to_complete) {
+                const deadline = new Date(new Date(c.date_accepted).getTime() + c.days_to_complete * 86400000);
+                const diff = deadline - now;
+                if (diff > 0) {
+                  const days = Math.floor(diff / 86400000);
+                  const hrs  = Math.floor((diff % 86400000) / 3600000);
+                  timeLeft = days > 0 ? days + 'j ' + hrs + 'h' : hrs + 'h';
+                  if (diff < 48 * 3600000) expiryWarn = true;
+                }
+              }
+
+              // Vérification conformité reward
+              let rewardOk = true;
+              if (c.status === 'outstanding' && c.volume && c.reward) {
+                const std = standards;
+                const tier = std.tiers.find(t => (c.collateral || 0) <= t.maxCollateral);
+                if (tier) {
+                  const expectedMin = c.volume * tier.ratePerM3;
+                  if (c.reward < expectedMin * 0.95) rewardOk = false;
+                }
+              }
+            %>
+            <tr data-status="<%= filterGroup %>">
+              <td>#<%= c.contract_id %></td>
+              <td><%= c.issuer_name %></td>
+              <td><%= c.start_name %></td>
+              <td><%= c.end_name %></td>
+              <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+              <td><%= c.collateral ? c.collateral.toLocaleString() + ' ISK' : '—' %></td>
+              <td>
+                <%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %>
+                <% if (!rewardOk) { %><span class="reward-warning" title="Reward below standard">&#9888;</span><% } %>
+              </td>
+              <td><span class="status-badge status-<%= c.status %>"><%= t.status[c.status] || c.status %></span></td>
+              <td><%= c.acceptor_name || '—' %></td>
+              <td class="time-left <%= expiryWarn ? 'expiry-warning' : '' %>"><%= timeLeft || '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <div class="pagination" id="pagination"></div>
+    <% } %>
+  </div>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    const PER_PAGE = 25;
+    let currentPage = 1;
+    const activeFilter = () => document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+
+    function getVisibleRows() {
+      const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+      const filter = activeFilter();
+      const rows = Array.from(document.querySelectorAll('#contracts-table tbody tr'));
+      return rows.filter(row => {
+        const matchFilter = filter === 'all' || row.dataset.status === filter;
+        const matchSearch = !q || row.textContent.toLowerCase().includes(q);
+        return matchFilter && matchSearch;
+      });
+    }
+
+    function applyVisibility() {
+      const allRows = Array.from(document.querySelectorAll('#contracts-table tbody tr'));
+      const visible = getVisibleRows();
+      const totalPages = Math.max(1, Math.ceil(visible.length / PER_PAGE));
+      if (currentPage > totalPages) currentPage = 1;
+      const start = (currentPage - 1) * PER_PAGE;
+      const end = start + PER_PAGE;
+
+      allRows.forEach(row => row.style.display = 'none');
+      visible.forEach((row, i) => {
+        row.style.display = (i >= start && i < end) ? '' : 'none';
+      });
+
+      renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+      const container = document.getElementById('pagination');
+      if (!container || totalPages <= 1) { if (container) container.innerHTML = ''; return; }
+      let html = '<button class="page-btn" onclick="goPage(1)" ' + (currentPage === 1 ? 'disabled' : '') + '>&laquo;</button>';
+      html += '<button class="page-btn" onclick="goPage(' + (currentPage - 1) + ')" ' + (currentPage === 1 ? 'disabled' : '') + '>&lsaquo;</button>';
+      const startP = Math.max(1, currentPage - 2);
+      const endP = Math.min(totalPages, currentPage + 2);
+      for (let i = startP; i <= endP; i++) {
+        html += '<button class="page-btn ' + (i === currentPage ? 'active' : '') + '" onclick="goPage(' + i + ')">' + i + '</button>';
+      }
+      html += '<button class="page-btn" onclick="goPage(' + (currentPage + 1) + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>&rsaquo;</button>';
+      html += '<button class="page-btn" onclick="goPage(' + totalPages + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>&raquo;</button>';
+      container.innerHTML = html;
+    }
+
+    function goPage(p) { currentPage = p; applyVisibility(); }
+
+    // Filtrage
+    document.getElementById('filters')?.addEventListener('click', e => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPage = 1;
+      applyVisibility();
+    });
+
+    // Recherche
+    document.getElementById('search-input')?.addEventListener('input', () => { currentPage = 1; applyVisibility(); });
+
+    // Tri colonnes
+    document.querySelectorAll('.sortable th[data-sort]').forEach((th, colIdx) => {
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', () => {
+        const tbody = document.querySelector('#contracts-table tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const type = th.dataset.sort;
+        const asc = th.dataset.dir !== 'asc';
+        document.querySelectorAll('.sortable th').forEach(h => delete h.dataset.dir);
+        th.dataset.dir = asc ? 'asc' : 'desc';
+        rows.sort((a, b) => {
+          let va = a.cells[colIdx]?.textContent.trim() || '';
+          let vb = b.cells[colIdx]?.textContent.trim() || '';
+          if (type === 'num') {
+            va = parseFloat(va.replace(/[^0-9.\-]/g, '')) || 0;
+            vb = parseFloat(vb.replace(/[^0-9.\-]/g, '')) || 0;
+            return asc ? va - vb : vb - va;
+          }
+          return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+        });
+        rows.forEach(r => tbody.appendChild(r));
+        applyVisibility();
+      });
+    });
+
+    // Init pagination
+    applyVisibility();
+  </script>
+</body>
+</html>
