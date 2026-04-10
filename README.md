@@ -17,82 +17,6 @@ Track courier contracts in real-time, calculate pricing per route, manage hauler
 - Responsive design (mobile, tablet, desktop)
 - CSV export, pagination, search, sort, conformity warnings
 
-## Requirements
-
-- Node.js 18+
-- A VPS with Nginx + Certbot
-- **Two EVE Online applications** registered at https://developers.eveonline.com
-- A valid **license key**
-
-### Why two EVE apps?
-
-The panel needs two separate EVE applications for different purposes:
-
-- **App 1** handles **user login** — when alliance members click "Login with EVE Online", this app authenticates them via SSO. It only needs basic permissions to identify the player, their corporation, and alliance.
-- **App 2** handles **server-side ESI access** — this is the service account (authorized by the CEO or a director) that reads corporation contracts in the background. It needs elevated scopes to access contract data for the entire corporation.
-
-Separating them is more secure: regular users never get access to the sensitive corporation scopes, and the service account token is managed independently.
-
-### App 1 — User Login
-- **Purpose**: authenticate alliance members on the website
-- **Name**: anything (e.g. "My Alliance Panel")
-- **Callback URL**: `https://your-domain.com/callback`
-- **Scopes**: `publicData`
-- This gives you `CLIENT_ID` and `CLIENT_SECRET`
-
-### App 2 — Service Account (ESI access)
-- **Purpose**: read corporation contracts and search stations/structures in the background
-- **Name**: anything (e.g. "My Alliance Service")
-- **Callback URL**: `https://your-domain.com/callback` (same URL)
-- **Scopes**: `esi-contracts.read_corporation_contracts.v1 esi-search.search_structures.v1`
-- This gives you `SERVICE_CLIENT_ID` and `SERVICE_CLIENT_SECRET`
-- Must be authorized by a character with **CEO or Director** role in the corporation
-
-## Installation
-
-1. Clone and install:
-```bash
-git clone <repo-url> /var/www/eve-app
-cd /var/www/eve-app
-npm install
-```
-
-2. Generate a session secret:
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-Copy the output for the next step.
-
-3. Create `.env`:
-```env
-PORT=3000
-LICENSE_KEY=your_license_key
-SESSION_SECRET=paste_the_generated_secret_here
-CLIENT_ID=your_eve_client_id
-CLIENT_SECRET=your_eve_client_secret
-CALLBACK_URL=https://your-domain.com/callback
-SERVICE_CLIENT_ID=your_service_client_id
-SERVICE_CLIENT_SECRET=your_service_client_secret
-SCOPES=publicData esi-contracts.read_corporation_contracts.v1 esi-search.search_structures.v1
-ALLIANCE_ID=your_alliance_id
-ADMIN_IDS=your_character_id
-DEPLOY_WEBHOOK_URL=https://discord.com/api/webhooks/your_deploy_webhook
-```
-
-Note: there are **two separate Discord webhooks**:
-- **Contract notifications** (new, accepted, delivered, failed) — configured in the **Admin Panel** on the website, stored in the database
-- **Deploy notifications** — `DEPLOY_WEBHOOK_URL` in the `.env`, used by `deploy.sh`
-
-You do NOT need `DISCORD_WEBHOOK_URL` in the `.env` — contract notifications are managed entirely through the admin panel.
-
-5. Start:
-```bash
-pm2 start server.js --name eve-app
-pm2 save
-```
-
-6. Visit `https://your-domain.com/service-setup` and log in with a CEO/director character to authorize ESI access.
-
 ## Pricing
 
 | Plan | Price | Details |
@@ -107,6 +31,245 @@ All plans include:
 - Access to updates
 - Setup support
 
+## Full Installation Guide (Ubuntu VPS from scratch)
+
+This guide assumes a fresh Ubuntu 22.04/24.04 VPS with root access and a domain name pointing to the server.
+
+---
+
+### Step 1 — Update the system
+
+```bash
+apt update && apt upgrade -y
+```
+
+### Step 2 — Install Node.js 20 + npm
+
+Do NOT use `apt install nodejs` — it installs an outdated version. Use NodeSource instead:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
+```
+
+Verify installation:
+
+```bash
+node -v
+npm -v
+```
+
+You should see Node.js 20.x and npm 10.x.
+
+### Step 3 — Install PM2 (process manager)
+
+```bash
+npm install -g pm2
+```
+
+### Step 4 — Install Nginx + Certbot (SSL)
+
+```bash
+apt install -y nginx certbot python3-certbot-nginx
+```
+
+### Step 5 — Install SQLite3 (optional, useful for debugging)
+
+```bash
+apt install -y sqlite3
+```
+
+### Step 6 — Clone the repository
+
+```bash
+git clone https://github.com/KaineOfficial/eve-logistics /var/www/eve-app
+cd /var/www/eve-app
+```
+
+### Step 7 — Install dependencies
+
+```bash
+npm install
+```
+
+### Step 8 — Create two EVE Online applications
+
+Go to https://developers.eveonline.com and create **two** applications:
+
+#### App 1 — User Login
+
+This app authenticates alliance members when they click "Login with EVE Online". It only needs basic permissions.
+
+1. Click **Create New Application**
+2. **Name**: anything (e.g. "My Alliance Panel")
+3. **Description**: anything
+4. **Connection Type**: Authentication & API Access
+5. **Permissions/Scopes**: select only `publicData`
+6. **Callback URL**: `https://your-domain.com/callback`
+7. Click **Create Application**
+8. Note down the **Client ID** and **Client Secret** — these are your `CLIENT_ID` and `CLIENT_SECRET`
+
+#### App 2 — Service Account (ESI access)
+
+This app reads corporation contracts in the background. It needs elevated permissions and must be authorized by a CEO or Director.
+
+1. Click **Create New Application**
+2. **Name**: anything (e.g. "My Alliance Service")
+3. **Description**: anything
+4. **Connection Type**: Authentication & API Access
+5. **Permissions/Scopes**: select:
+   - `esi-contracts.read_corporation_contracts.v1`
+   - `esi-search.search_structures.v1`
+   - Add any other scopes you need
+6. **Callback URL**: `https://your-domain.com/callback` (same URL as App 1)
+7. Click **Create Application**
+8. Note down the **Client ID** and **Client Secret** — these are your `SERVICE_CLIENT_ID` and `SERVICE_CLIENT_SECRET`
+
+**Why two apps?** Separating them is more secure: regular users never get access to the sensitive corporation scopes, and the service account token is managed independently.
+
+### Step 9 — Generate a session secret
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Copy the output — you'll need it in the next step.
+
+### Step 10 — Create the .env file
+
+```bash
+nano /var/www/eve-app/.env
+```
+
+Paste the following and fill in your values:
+
+```env
+PORT=3000
+LICENSE_KEY=your_license_key_from_yashiro
+SESSION_SECRET=paste_the_generated_secret_from_step_9
+CLIENT_ID=client_id_from_app_1
+CLIENT_SECRET=client_secret_from_app_1
+CALLBACK_URL=https://your-domain.com/callback
+SERVICE_CLIENT_ID=client_id_from_app_2
+SERVICE_CLIENT_SECRET=client_secret_from_app_2
+SCOPES=publicData esi-contracts.read_corporation_contracts.v1 esi-search.search_structures.v1
+ALLIANCE_ID=your_alliance_id
+ADMIN_IDS=your_character_id
+DEPLOY_WEBHOOK_URL=https://discord.com/api/webhooks/your_deploy_webhook
+```
+
+**Variable reference:**
+
+| Variable | Description |
+|---|---|
+| `LICENSE_KEY` | License key provided by Yashiro Yamamoto after purchase |
+| `SESSION_SECRET` | Random string for session encryption (generated in Step 9) |
+| `CLIENT_ID` | Client ID from App 1 (user login) |
+| `CLIENT_SECRET` | Client Secret from App 1 |
+| `CALLBACK_URL` | Must match exactly what you set in both EVE apps |
+| `SERVICE_CLIENT_ID` | Client ID from App 2 (service account) |
+| `SERVICE_CLIENT_SECRET` | Client Secret from App 2 |
+| `SCOPES` | EVE SSO scopes — do not modify unless you know what you're doing |
+| `ALLIANCE_ID` | Your alliance ID (find it on https://evewho.com) |
+| `ADMIN_IDS` | Your character ID (find it on https://evewho.com) — this is the first admin |
+| `DEPLOY_WEBHOOK_URL` | Discord webhook URL for deploy notifications (optional) |
+
+**Note:** Contract notifications (new, accepted, delivered, failed) are configured in the **Admin Panel** on the website, not in the `.env` file.
+
+Save and exit (`Ctrl+X`, then `Y`, then `Enter`).
+
+### Step 11 — Configure Nginx
+
+Create the Nginx config:
+
+```bash
+nano /etc/nginx/sites-available/eve-app
+```
+
+Paste:
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+Enable the site:
+
+```bash
+ln -sf /etc/nginx/sites-available/eve-app /etc/nginx/sites-enabled/
+nginx -t
+systemctl reload nginx
+```
+
+### Step 12 — Enable SSL (HTTPS)
+
+```bash
+certbot --nginx -d your-domain.com
+```
+
+Follow the prompts. Certbot will automatically configure HTTPS and redirect HTTP to HTTPS.
+
+### Step 13 — Start the panel
+
+```bash
+cd /var/www/eve-app
+pm2 start server.js --name eve-app
+pm2 save
+pm2 startup
+```
+
+The last command (`pm2 startup`) ensures PM2 restarts automatically after a server reboot.
+
+### Step 14 — Authorize the service account
+
+1. Open `https://your-domain.com/service-setup` in your browser
+2. This redirects to EVE SSO — **log in with the CEO or Director character** that has access to corporation contracts
+3. After authorization, the refresh token is automatically saved to the database
+4. The panel will now be able to fetch corporation contracts via ESI
+5. If you need to change the service account later, just visit `/service-setup` again
+
+### Step 15 — Verify everything works
+
+1. Open `https://your-domain.com` — you should see the login page
+2. Click "Login with EVE Online" and log in with an alliance member
+3. You should see the dashboard with contract stats
+4. Go to Admin panel and configure Discord webhooks, routes, standards, etc.
+
+---
+
+## Updating
+
+When a new version is available:
+
+```bash
+cd /var/www/eve-app
+git pull origin main
+npm install
+pm2 restart eve-app --update-env
+```
+
+## Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| `Error: secret option required for sessions` | Your `.env` file is missing or `SESSION_SECRET` is empty |
+| `State invalide` on login | Clear your cookies and try again from the home page |
+| `The redirect URL does not match` | Your `CALLBACK_URL` in `.env` doesn't match the Callback URL in your EVE app settings — they must be identical |
+| `LICENSE` errors at startup | Your license key is invalid, expired, or not valid for your alliance ID |
+| `420` errors in logs | ESI rate limit — increase cache duration in Admin Panel |
+| Panel won't start after reboot | Run `pm2 startup` then `pm2 save` |
+
 ## License
 
 This software requires a valid license key. The panel verifies the license against a remote server at startup and periodically during operation. If the server is temporarily unreachable, a 24-hour local cache is used.
@@ -115,4 +278,4 @@ Without a valid license, the panel will not start.
 
 Modifying, reverse-engineering, or circumventing the license system is prohibited.
 
-Contact **Yashiro Yamamoto** in-game or via Discord : "kaine_off" for pricing and licensing.
+Contact **Yashiro Yamamoto** in-game or via Discord for pricing and licensing.
