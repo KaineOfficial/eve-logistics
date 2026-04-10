@@ -2,7 +2,7 @@ module.exports = {
   en: {
     nav: {
       home: 'Home', logistics: 'Logistics',
-      calculator: 'Calculator',
+      calculator: 'Calculator', myContracts: 'My Contracts',
       login: 'Login', logout: 'Logout'
     },
     index: {
@@ -14,6 +14,10 @@ module.exports = {
       title: 'Logistics',
       filterAll: 'All',
       colTimeLeft: 'Time left',
+    },
+    myContracts: {
+      title: 'My Contracts',
+      noContracts: 'You have no contracts yet.',
     },
     dashboard: {
       title: 'Dashboard',
@@ -87,7 +91,7 @@ module.exports = {
   fr: {
     nav: {
       home: 'Accueil', logistics: 'Logistique',
-      calculator: 'Calculateur',
+      calculator: 'Calculateur', myContracts: 'Mes contrats',
       login: 'Se connecter', logout: 'Déconnexion'
     },
     index: {
@@ -99,6 +103,10 @@ module.exports = {
       title: 'Logistique',
       filterAll: 'Tous',
       colTimeLeft: 'Temps restant',
+    },
+    myContracts: {
+      title: 'Mes contrats',
+      noContracts: "Vous n'avez aucun contrat pour le moment.",
     },
     dashboard: {
       title: 'Dashboard',
@@ -172,7 +180,7 @@ module.exports = {
   es: {
     nav: {
       home: 'Inicio', logistics: 'Logística',
-      calculator: 'Calculadora',
+      calculator: 'Calculadora', myContracts: 'Mis contratos',
       login: 'Iniciar sesión', logout: 'Cerrar sesión'
     },
     index: {
@@ -184,6 +192,10 @@ module.exports = {
       title: 'Logística',
       filterAll: 'Todos',
       colTimeLeft: 'Tiempo restante',
+    },
+    myContracts: {
+      title: 'Mis contratos',
+      noContracts: 'No tienes contratos por el momento.',
     },
     dashboard: {
       title: 'Panel de control',

@@ -320,6 +320,26 @@ app.get('/logistics', requireMember, async (_req, res) => {
   }
 });
 
+// ── MES CONTRATS (suivi client) ──────────────────────────────────────────
+
+app.get('/my-contracts', requireMember, async (req, res) => {
+  const char = req.session.character;
+  try {
+    const all       = await fetchAllianceContracts();
+    const contracts = all.filter(c => c.issuer_id === char.id);
+    const stats = {
+      outstanding: contracts.filter(c => c.status === 'outstanding').length,
+      in_progress: contracts.filter(c => c.status === 'in_progress').length,
+      finished:    contracts.filter(c => ['finished','finished_issuer','finished_contractor'].includes(c.status)).length,
+      cancelled:   contracts.filter(c => ['cancelled','rejected','failed','deleted','reversed'].includes(c.status)).length,
+    };
+    res.render('my-contracts', { contracts, stats });
+  } catch (err) {
+    console.error('[my-contracts] ESI error:', err.message);
+    res.render('my-contracts', { contracts: [], stats: { outstanding: 0, in_progress: 0, finished: 0, cancelled: 0 } });
+  }
+});
+
 // Redirects anciennes URLs
 app.get('/freight', requireMember, (_req, res) => res.redirect('/logistics'));
 app.get('/hauler', requireMember, (_req, res) => res.redirect('/logistics'));
