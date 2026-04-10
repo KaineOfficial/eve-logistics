@@ -67,21 +67,38 @@ const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 async function notifyDiscord(contract) {
   if (!DISCORD_WEBHOOK_URL) return;
   try {
+    const vol = contract.volume ? `\`${contract.volume.toLocaleString()} m³\`` : '—';
+    const col = contract.collateral ? `\`${contract.collateral.toLocaleString()} ISK\`` : '—';
+    const rew = contract.reward ? `\`${contract.reward.toLocaleString()} ISK\`` : '—';
+
+    // Portrait de l'issuer via EVE image server
+    const portraitUrl = `https://images.evetech.net/characters/${contract.issuer_id}/portrait?size=64`;
+
     const embed = {
-      title: 'New Courier Contract',
-      color: 0x3b82f6,
+      author: {
+        name: contract.issuer_name,
+        icon_url: portraitUrl,
+      },
+      title: '\u{1F4E6} New Courier Contract',
+      color: 0xf59e0b,
+      description: [
+        `**\u{1F6EB} Departure**\n${contract.start_name}`,
+        `**\u{1F6EC} Arrival**\n${contract.end_name}`,
+      ].join('\n\n'),
       fields: [
-        { name: 'Issuer',     value: contract.issuer_name, inline: true },
-        { name: 'Route',      value: `${contract.start_name} → ${contract.end_name}`, inline: false },
-        { name: 'Volume',     value: contract.volume ? `${contract.volume.toLocaleString()} m³` : '—', inline: true },
-        { name: 'Collateral', value: contract.collateral ? `${contract.collateral.toLocaleString()} ISK` : '—', inline: true },
-        { name: 'Reward',     value: contract.reward ? `${contract.reward.toLocaleString()} ISK` : '—', inline: true },
+        { name: '\u{1F4E6} Volume',     value: vol, inline: true },
+        { name: '\u{1F512} Collateral', value: col, inline: true },
+        { name: '\u{1F4B0} Reward',     value: rew, inline: true },
       ],
-      footer: { text: `Contract #${contract.contract_id}` },
+      footer: {
+        text: `TSLC Logistics \u2022 Contract #${contract.contract_id}`,
+      },
       timestamp: contract.date_issued || new Date().toISOString(),
     };
+
     await axios.post(DISCORD_WEBHOOK_URL, {
       username: 'TSLC Logistics',
+      avatar_url: 'https://images.evetech.net/alliances/99014321/logo?size=128',
       embeds: [embed],
     });
   } catch (err) {
