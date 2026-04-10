@@ -5,14 +5,16 @@
     <% if (character && character.allianceId == 99014321) { %>
       <a href="/logistics" class="nav-btn"><%= t.nav.logistics %></a>
       <a href="/my-contracts" class="nav-btn mycontracts"><%= t.nav.myContracts %></a>
+      <a href="/my-deliveries" class="nav-btn hauler-nav"><%= t.nav.myDeliveries %></a>
       <a href="/leaderboard" class="nav-btn leaderboard"><%= t.nav.leaderboard %></a>
     <% } %>
   </div>
   <div class="navbar-right">
-    <% if (isAdmin) { %>
+    <% if (isDirector) { %>
       <a href="/admin" class="nav-btn admin">Admin</a>
     <% } %>
     <% if (character) { %>
+      <span class="role-badge role-<%= userRole %>"><%= userRole %></span>
       <a href="/logout" class="nav-btn logout"><%= t.nav.logout %></a>
     <% } else { %>
       <a href="/login" class="nav-btn"><%= t.nav.login %></a>

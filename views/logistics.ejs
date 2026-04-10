@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="<%= lang %>">
 <head>
-  <meta charset="UTF-8">
-  <title><%= t.logistics.title %> — TSLC</title>
-  <link rel="stylesheet" href="/style.css">
+  <%- include('partials/head') %>
+  <title><%= t.logistics.title %> — Tilean Dominion</title>
 </head>
 <body>
   <%- include('partials/navbar') %>
@@ -87,7 +86,12 @@
       <% }) %>
     <% } %>
 
-    <p class="hauler-note"><%= t.hauler.inGameNote %></p>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <p class="hauler-note" style="margin:0"><%= t.hauler.inGameNote %></p>
+      <% if (isDirector) { %>
+        <a href="/api/export/csv" class="export-btn">CSV Export</a>
+      <% } %>
+    </div>
 
     <!-- Filtres par statut -->
     <div class="filters" id="filters">
@@ -131,6 +135,7 @@
 
               // Calcul temps restant
               let timeLeft = '';
+              let expiryWarn = false;
               const now = new Date();
               if (c.status === 'outstanding' && c.date_expired) {
                 const diff = new Date(c.date_expired) - now;
@@ -138,6 +143,7 @@
                   const days = Math.floor(diff / 86400000);
                   const hrs  = Math.floor((diff % 86400000) / 3600000);
                   timeLeft = days > 0 ? days + 'j ' + hrs + 'h' : hrs + 'h';
+                  if (diff < 48 * 3600000) expiryWarn = true;
                 }
               } else if (c.status === 'in_progress' && c.date_accepted && c.days_to_complete) {
                 const deadline = new Date(new Date(c.date_accepted).getTime() + c.days_to_complete * 86400000);
@@ -146,6 +152,18 @@
                   const days = Math.floor(diff / 86400000);
                   const hrs  = Math.floor((diff % 86400000) / 3600000);
                   timeLeft = days > 0 ? days + 'j ' + hrs + 'h' : hrs + 'h';
+                  if (diff < 48 * 3600000) expiryWarn = true;
+                }
+              }
+
+              // Vérification conformité reward
+              let rewardOk = true;
+              if (c.status === 'outstanding' && c.volume && c.reward) {
+                const std = standards;
+                const tier = std.tiers.find(t => (c.collateral || 0) <= t.maxCollateral);
+                if (tier) {
+                  const expectedMin = c.volume * tier.ratePerM3;
+                  if (c.reward < expectedMin * 0.95) rewardOk = false;
                 }
               }
             %>
@@ -156,10 +174,13 @@
               <td><%= c.end_name %></td>
               <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
               <td><%= c.collateral ? c.collateral.toLocaleString() + ' ISK' : '—' %></td>
-              <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+              <td>
+                <%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %>
+                <% if (!rewardOk) { %><span class="reward-warning" title="Reward below standard">&#9888;</span><% } %>
+              </td>
               <td><span class="status-badge status-<%= c.status %>"><%= t.status[c.status] || c.status %></span></td>
               <td><%= c.acceptor_name || '—' %></td>
-              <td class="time-left"><%= timeLeft || '—' %></td>
+              <td class="time-left <%= expiryWarn ? 'expiry-warning' : '' %>"><%= timeLeft || '—' %></td>
             </tr>
           <% }) %>
         </tbody>

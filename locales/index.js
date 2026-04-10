@@ -3,12 +3,12 @@ module.exports = {
     nav: {
       home: 'Home', logistics: 'Logistics',
       calculator: 'Calculator', myContracts: 'My Contracts',
-      leaderboard: 'Leaderboard',
+      leaderboard: 'Leaderboard', myDeliveries: 'My Deliveries',
       login: 'Login', logout: 'Logout'
     },
     index: {
-      title: 'EVE Online Panel',
-      subtitle: 'Login required to access the dashboard',
+      title: 'Tilean Dominion Logistics',
+      subtitle: 'Login required to access the logistics panel',
       loginBtn: 'Login with EVE Online'
     },
     logistics: {
@@ -20,6 +20,14 @@ module.exports = {
     myContracts: {
       title: 'My Contracts',
       noContracts: 'You have no contracts yet.',
+    },
+    myDeliveries: {
+      title: 'My Deliveries',
+      delivered: 'Delivered',
+      inProgress: 'In Progress',
+      totalVolume: 'Volume hauled (m³)',
+      totalReward: 'ISK earned',
+      noDeliveries: 'No deliveries yet.',
     },
     leaderboard: {
       title: 'Leaderboard',
@@ -104,6 +112,7 @@ module.exports = {
       errNoTier: 'No matching pricing tier found.',
       labelRoute: 'Route',
       standardRoute: 'Standard (default)',
+      copyReward: 'Copy reward',
     },
     admin: {
       title: 'Admin Panel',
@@ -167,12 +176,12 @@ module.exports = {
     nav: {
       home: 'Accueil', logistics: 'Logistique',
       calculator: 'Calculateur', myContracts: 'Mes contrats',
-      leaderboard: 'Classement',
+      leaderboard: 'Classement', myDeliveries: 'Mes livraisons',
       login: 'Se connecter', logout: 'Déconnexion'
     },
     index: {
-      title: 'Panel EVE Online',
-      subtitle: 'Connexion requise pour accéder au dashboard',
+      title: 'Tilean Dominion Logistique',
+      subtitle: 'Connexion requise pour accéder au panel logistique',
       loginBtn: 'Se connecter avec EVE Online'
     },
     logistics: {
@@ -184,6 +193,14 @@ module.exports = {
     myContracts: {
       title: 'Mes contrats',
       noContracts: "Vous n'avez aucun contrat pour le moment.",
+    },
+    myDeliveries: {
+      title: 'Mes livraisons',
+      delivered: 'Livrés',
+      inProgress: 'En cours',
+      totalVolume: 'Volume transporté (m³)',
+      totalReward: 'ISK gagnés',
+      noDeliveries: 'Aucune livraison pour le moment.',
     },
     leaderboard: {
       title: 'Classement',
@@ -268,6 +285,7 @@ module.exports = {
       errNoTier: 'Aucun palier tarifaire correspondant.',
       labelRoute: 'Route',
       standardRoute: 'Standard (par défaut)',
+      copyReward: 'Copier la récompense',
     },
     admin: {
       title: 'Panel Admin',
@@ -331,12 +349,12 @@ module.exports = {
     nav: {
       home: 'Inicio', logistics: 'Logística',
       calculator: 'Calculadora', myContracts: 'Mis contratos',
-      leaderboard: 'Clasificación',
+      leaderboard: 'Clasificación', myDeliveries: 'Mis entregas',
       login: 'Iniciar sesión', logout: 'Cerrar sesión'
     },
     index: {
-      title: 'Panel EVE Online',
-      subtitle: 'Inicio de sesión requerido para acceder al panel',
+      title: 'Tilean Dominion Logística',
+      subtitle: 'Inicio de sesión requerido para acceder al panel logístico',
       loginBtn: 'Iniciar sesión con EVE Online'
     },
     logistics: {
@@ -348,6 +366,14 @@ module.exports = {
     myContracts: {
       title: 'Mis contratos',
       noContracts: 'No tienes contratos por el momento.',
+    },
+    myDeliveries: {
+      title: 'Mis entregas',
+      delivered: 'Entregados',
+      inProgress: 'En progreso',
+      totalVolume: 'Volumen transportado (m³)',
+      totalReward: 'ISK ganados',
+      noDeliveries: 'Sin entregas por el momento.',
     },
     leaderboard: {
       title: 'Clasificación',
@@ -432,6 +458,7 @@ module.exports = {
       errNoTier: 'No se encontró ningún nivel de precios.',
       labelRoute: 'Ruta',
       standardRoute: 'Estándar (por defecto)',
+      copyReward: 'Copiar recompensa',
     },
     admin: {
       title: 'Panel Admin',

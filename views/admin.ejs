@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="<%= lang %>">
 <head>
-  <meta charset="UTF-8">
-  <title><%= t.admin.title %> — TSLC</title>
-  <link rel="stylesheet" href="/style.css">
+  <%- include('partials/head') %>
+  <title><%= t.admin.title %> — Tilean Dominion</title>
 </head>
 <body>
   <%- include('partials/navbar') %>
@@ -61,6 +60,7 @@
     </div>
 
     <!-- ═══ DISCORD ═══ -->
+    <% if (isAdmin) { %>
     <div class="admin-section">
       <h2 class="admin-section-title"><%= t.admin.discord %></h2>
       <form method="POST" action="/admin/settings">
@@ -80,8 +80,10 @@
         </div>
       </form>
     </div>
+    <% } %>
 
     <!-- ═══ STATIONS ═══ -->
+    <% if (isAdmin) { %>
     <div class="admin-section">
       <h2 class="admin-section-title"><%= t.admin.stations %></h2>
       <form method="POST" action="/admin/settings">
@@ -95,8 +97,10 @@
         </div>
       </form>
     </div>
+    <% } %>
 
     <!-- ═══ CACHE ═══ -->
+    <% if (isAdmin) { %>
     <div class="admin-section">
       <h2 class="admin-section-title"><%= t.admin.cache %></h2>
       <form method="POST" action="/admin/settings">
@@ -110,8 +114,10 @@
         </div>
       </form>
     </div>
+    <% } %>
 
     <!-- ═══ ADMINS ═══ -->
+    <% if (isAdmin) { %>
     <div class="admin-section">
       <h2 class="admin-section-title"><%= t.admin.admins %></h2>
       <form method="POST" action="/admin/settings">
@@ -126,6 +132,71 @@
         </div>
       </form>
     </div>
+    <% } %>
+
+    <!-- ═══ ROLES ═══ -->
+    <% if (isAdmin) { %>
+    <div class="admin-section">
+      <h2 class="admin-section-title"><%= t.admin.rolesTitle || 'Roles' %></h2>
+
+      <% if (roles.length > 0) { %>
+        <table class="contracts-table" style="margin-bottom:16px">
+          <thead>
+            <tr>
+              <th>Character</th>
+              <th>ID</th>
+              <th><%= t.admin.logAction %></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% roles.forEach(r => { %>
+              <tr>
+                <td>
+                  <div class="hauler-profile">
+                    <img src="https://images.evetech.net/characters/<%= r.char_id %>/portrait?size=32" class="hauler-avatar">
+                    <span><%= r.char_name %></span>
+                  </div>
+                </td>
+                <td><%= r.char_id %></td>
+                <td><span class="role-badge role-<%= r.role %>"><%= r.role %></span></td>
+                <td>
+                  <% if (r.char_id !== character.id) { %>
+                    <form method="POST" action="/admin/roles/<%= r.char_id %>/delete" style="display:inline" onsubmit="return confirm('Remove role?')">
+                      <button type="submit" class="btn-remove-tier">X</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+
+      <form method="POST" action="/admin/roles" class="admin-grid" style="gap:8px;align-items:flex-end">
+        <div class="form-group">
+          <label>Character ID</label>
+          <input type="number" name="charId" required>
+        </div>
+        <div class="form-group">
+          <label>Character Name</label>
+          <input type="text" name="charName" required>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select name="role" class="search-input" style="cursor:pointer">
+            <option value="admin">Admin</option>
+            <option value="director">Director</option>
+            <option value="hauler">Hauler</option>
+            <option value="member">Member</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="submit-btn" style="margin:0">+</button>
+        </div>
+      </form>
+    </div>
+    <% } %>
 
     <!-- ═══ ROUTES SPÉCIALES ═══ -->
     <div class="admin-section">

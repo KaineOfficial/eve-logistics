@@ -78,6 +78,23 @@ function getAdminIds() {
   return [...new Set([...(ids || []), ...envIds])];
 }
 
+// ── Rôles ────────────────────────────────────────────────────────────────
+function getRole(charId) {
+  const row = db.prepare('SELECT role FROM roles WHERE char_id = ?').get(charId);
+  if (row) return row.role;
+  // Fallback: check admin IDs
+  if (getAdminIds().includes(charId)) return 'admin';
+  return 'member';
+}
+
+function setRole(charId, charName, role) {
+  db.prepare('INSERT INTO roles (char_id, char_name, role) VALUES (?, ?, ?) ON CONFLICT(char_id) DO UPDATE SET char_name = excluded.char_name, role = excluded.role').run(charId, charName, role);
+}
+
+function getAllRoles() {
+  return db.prepare('SELECT * FROM roles ORDER BY role, char_name').all();
+}
+
 function getCommonStations() {
   return getSettingJSON('common_stations') || [];
 }
@@ -341,19 +358,35 @@ function requireMember(req, res, next) {
 
 function requireAdmin(req, res, next) {
   if (!req.session.character) return res.redirect('/login');
-  const adminIds = getAdminIds();
-  if (!adminIds.includes(req.session.character.id)) {
+  const role = getRole(req.session.character.id);
+  if (role !== 'admin') {
     return res.status(403).render('403', { character: req.session.character, version });
   }
   next();
 }
 
-// Rendre isAdmin dispo dans toutes les vues
+function requireDirector(req, res, next) {
+  if (!req.session.character) return res.redirect('/login');
+  const role = getRole(req.session.character.id);
+  if (role !== 'admin' && role !== 'director') {
+    return res.status(403).render('403', { character: req.session.character, version });
+  }
+  next();
+}
+
+// Rendre les rôles dispo dans toutes les vues
 app.use((req, res, next) => {
   if (req.session.character) {
-    res.locals.isAdmin = getAdminIds().includes(req.session.character.id);
+    const role = getRole(req.session.character.id);
+    res.locals.userRole = role;
+    res.locals.isAdmin    = role === 'admin';
+    res.locals.isDirector = role === 'admin' || role === 'director';
+    res.locals.isHauler   = role === 'admin' || role === 'director' || role === 'hauler';
   } else {
-    res.locals.isAdmin = false;
+    res.locals.userRole   = 'guest';
+    res.locals.isAdmin    = false;
+    res.locals.isDirector = false;
+    res.locals.isHauler   = false;
   }
   next();
 });
@@ -635,6 +668,53 @@ app.get('/api/stations', async (req, res) => {
 });
 
 
+// ── CSV EXPORT ───────────────────────────────────────────────────────────
+
+app.get('/api/export/csv', requireDirector, async (req, res) => {
+  try {
+    const contracts = await fetchAllianceContracts();
+    const header = 'Contract ID,Issuer,From,To,Volume,Collateral,Reward,Status,Hauler,Date Issued\n';
+    const rows = contracts.map(c => [
+      c.contract_id,
+      `"${c.issuer_name}"`,
+      `"${c.start_name}"`,
+      `"${c.end_name}"`,
+      c.volume || 0,
+      c.collateral || 0,
+      c.reward || 0,
+      c.status,
+      `"${c.acceptor_name || ''}"`,
+      c.date_issued || '',
+    ].join(',')).join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=contracts.csv');
+    res.send(header + rows);
+  } catch (err) {
+    console.error('[csv] error:', err.message);
+    res.status(500).send('Export error');
+  }
+});
+
+// ── HAULER HISTORY ───────────────────────────────────────────────────────
+
+app.get('/my-deliveries', requireMember, async (req, res) => {
+  const char = req.session.character;
+  try {
+    const all = await fetchAllianceContracts();
+    const contracts = all.filter(c => c.acceptor_id === char.id);
+    const stats = {
+      delivered: contracts.filter(c => ['finished','finished_issuer','finished_contractor'].includes(c.status)).length,
+      in_progress: contracts.filter(c => c.status === 'in_progress').length,
+      totalVolume: Math.round(contracts.filter(c => ['finished','finished_issuer','finished_contractor'].includes(c.status)).reduce((s, c) => s + (c.volume || 0), 0)),
+      totalReward: Math.round(contracts.filter(c => ['finished','finished_issuer','finished_contractor'].includes(c.status)).reduce((s, c) => s + (c.reward || 0), 0)),
+    };
+    res.render('my-deliveries', { contracts, stats });
+  } catch (err) {
+    console.error('[my-deliveries] ESI error:', err.message);
+    res.render('my-deliveries', { contracts: [], stats: { delivered: 0, in_progress: 0, totalVolume: 0, totalReward: 0 } });
+  }
+});
+
 // CALCULATEUR
 app.get('/calculator', (req, res) => {
   res.render('calculator', {
@@ -666,7 +746,7 @@ app.get('/api/jumps', async (req, res) => {
 
 app.use(express.json());
 
-app.get('/admin', requireAdmin, (req, res) => {
+app.get('/admin', requireDirector, (req, res) => {
   const logs = db.prepare('SELECT * FROM admin_logs ORDER BY created_at DESC LIMIT 20').all();
   res.render('admin', {
     standards:      getFreightStandards(),
@@ -675,6 +755,7 @@ app.get('/admin', requireAdmin, (req, res) => {
     stations:       getCommonStations(),
     cacheDuration:  parseInt(getSetting('cache_duration')) || 5,
     adminIds:       getAdminIds(),
+    roles:          getAllRoles(),
     routes:         getRoutes(false),
     jumpEnabled:    getSetting('jump_calculation') === 'true',
     jumpPrice:      getSetting('jump_price_per_m3') || '0',
@@ -754,6 +835,28 @@ app.post('/admin/settings', requireAdmin, (req, res) => {
     logAdmin(req, 'update_jumps', `enabled=${req.body.jumpEnabled === 'on'}, price=${req.body.jumpPrice}/m³/jump`);
   }
 
+  res.redirect('/admin');
+});
+
+// ── Rôles CRUD (admin only) ──────────────────────────────────────────────
+
+app.post('/admin/roles', requireAdmin, (req, res) => {
+  const charId = parseInt(req.body.charId);
+  const charName = (req.body.charName || '').trim();
+  const role = req.body.role;
+  if (!charId || !charName || !['admin', 'director', 'hauler', 'member'].includes(role)) {
+    return res.redirect('/admin');
+  }
+  setRole(charId, charName, role);
+  logAdmin(req, 'set_role', `${charName} (#${charId}) → ${role}`);
+  res.redirect('/admin');
+});
+
+app.post('/admin/roles/:id/delete', requireAdmin, (req, res) => {
+  const charId = parseInt(req.params.id);
+  if (charId === req.session.character.id) return res.redirect('/admin');
+  db.prepare('DELETE FROM roles WHERE char_id = ?').run(charId);
+  logAdmin(req, 'delete_role', `#${charId}`);
   res.redirect('/admin');
 });
 

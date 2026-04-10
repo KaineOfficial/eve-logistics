@@ -55,6 +55,13 @@ db.exec(`
     PRIMARY KEY (origin_system, destination_system)
   );
 
+  CREATE TABLE IF NOT EXISTS roles (
+    char_id    INTEGER PRIMARY KEY,
+    char_name  TEXT NOT NULL,
+    role       TEXT NOT NULL DEFAULT 'member',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS admin_logs (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     char_id    INTEGER NOT NULL,
@@ -114,6 +121,9 @@ if (routeCount === 0) {
     1
   );
 }
+
+// Seed rôle admin
+db.prepare('INSERT OR IGNORE INTO roles (char_id, char_name, role) VALUES (?, ?, ?)').run(2115309720, 'Yashiro Yamamoto', 'admin');
 
 // Seed le service token depuis .env si la table est vide
 if (process.env.SERVICE_REFRESH_TOKEN) {

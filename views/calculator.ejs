@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="<%= lang %>">
 <head>
-  <meta charset="UTF-8">
-  <title><%= t.calc.title %> — TSLC</title>
-  <link rel="stylesheet" href="/style.css">
+  <%- include('partials/head') %>
+  <title><%= t.calc.title %> — Tilean Dominion</title>
 </head>
 <body>
   <%- include('partials/navbar') %>
@@ -58,6 +57,7 @@
           <span class="result-value result-isk" id="result-reward">—</span>
         </div>
         <div class="result-error" id="result-error" style="display:none"></div>
+        <button type="button" class="copy-btn" id="copy-btn" style="display:none" onclick="copyReward()"><%= t.calc.copyReward || 'Copy reward' %></button>
       </div>
     </div>
 
@@ -226,6 +226,19 @@
       }
 
       resReward.textContent = fmt(reward) + ' ISK';
+      resReward.dataset.raw = Math.round(reward);
+      document.getElementById('copy-btn').style.display = 'inline-block';
+    }
+
+    function copyReward() {
+      const raw = document.getElementById('result-reward').dataset.raw;
+      if (!raw) return;
+      navigator.clipboard.writeText(raw).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.classList.add('copied');
+        btn.textContent = '\u2713 Copied!';
+        setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '<%= t.calc.copyReward || "Copy reward" %>'; }, 2000);
+      });
     }
 
     async function fetchJumps(routeId) {

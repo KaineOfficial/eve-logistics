@@ -1204,6 +1204,112 @@ td.label {
   display: none;
 }
 
+/* Login logo */
+.login-logo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 16px;
+  border: 2px solid #334155;
+}
+
+/* Role badges */
+.role-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.role-admin {
+  background: #450a0a;
+  color: #f87171;
+}
+
+.role-director {
+  background: #422006;
+  color: #fbbf24;
+}
+
+.role-hauler {
+  background: #1e1b4b;
+  color: #a78bfa;
+}
+
+.role-member {
+  background: #1e293b;
+  color: #64748b;
+}
+
+/* Hauler nav button */
+.nav-btn.hauler-nav {
+  background: #8b5cf6;
+}
+
+.nav-btn.hauler-nav:hover {
+  background: #7c3aed;
+}
+
+/* Conformity warning */
+.reward-warning {
+  color: #f87171;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+/* Copy button */
+.copy-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #3b82f6;
+  padding: 6px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+.copy-btn:hover {
+  background: #334155;
+}
+
+.copy-btn.copied {
+  color: #4ade80;
+  border-color: #4ade80;
+}
+
+/* Export CSV button */
+.export-btn {
+  display: inline-block;
+  padding: 6px 14px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #3b82f6;
+  text-decoration: none;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.export-btn:hover {
+  background: #334155;
+}
+
+/* Expiry warning */
+.expiry-warning {
+  color: #f87171;
+  font-weight: bold;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0.5; }
+}
+
 /* ============================================================
    RESPONSIVE / MOBILE STYLES
    Appended — do not modify above this line
