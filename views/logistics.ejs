@@ -120,6 +120,7 @@
                 <th><%= t.freight.colVolume %></th>
                 <th><%= t.freight.colCollateral %></th>
                 <th><%= t.freight.colReward %></th>
+                <th><%= t.freight.colHauler %></th>
               </tr>
             </thead>
             <tbody>
@@ -132,6 +133,7 @@
                   <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
                   <td><%= c.collateral ? c.collateral.toLocaleString() + ' ISK' : '—' %></td>
                   <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+                  <td><%= c.acceptor_name || '—' %></td>
                 </tr>
               <% }) %>
             </tbody>
@@ -150,6 +152,7 @@
                 <th><%= t.freight.colFrom %></th>
                 <th><%= t.freight.colTo %></th>
                 <th><%= t.freight.colVolume %></th>
+                <th><%= t.freight.colCollateral %></th>
                 <th><%= t.freight.colReward %></th>
                 <th><%= t.freight.colHauler %></th>
               </tr>
@@ -162,6 +165,7 @@
                   <td><%= c.start_name %></td>
                   <td><%= c.end_name %></td>
                   <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+                  <td><%= c.collateral ? c.collateral.toLocaleString() + ' ISK' : '—' %></td>
                   <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
                   <td><%= c.acceptor_name || '—' %></td>
                 </tr>
