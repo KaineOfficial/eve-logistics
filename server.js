@@ -899,7 +899,11 @@ app.get('/director', requireDirector, async (req, res) => {
 app.use(express.json());
 
 app.get('/admin', requireDirector, (req, res) => {
-  const logs = db.prepare('SELECT * FROM admin_logs ORDER BY created_at DESC LIMIT 20').all();
+  const logPage = parseInt(req.query.logPage) || 1;
+  const logPerPage = 15;
+  const logTotal = db.prepare('SELECT COUNT(*) as c FROM admin_logs').get().c;
+  const logTotalPages = Math.max(1, Math.ceil(logTotal / logPerPage));
+  const logs = db.prepare('SELECT * FROM admin_logs ORDER BY created_at DESC LIMIT ? OFFSET ?').all(logPerPage, (logPage - 1) * logPerPage);
   res.render('admin', {
     standards:      getFreightStandards(),
     webhookUrl:     getSetting('discord_webhook_url') || '',
@@ -918,6 +922,7 @@ app.get('/admin', requireDirector, (req, res) => {
       failed: getSetting('discord_event_failed') !== 'false',
     },
     priceHistory: db.prepare('SELECT * FROM price_history ORDER BY created_at DESC LIMIT 10').all(),
+    logPage, logTotalPages,
     jumpEnabled:    getSetting('jump_calculation') === 'true',
     jumpPrice:      getSetting('jump_price_per_m3') || '0',
     jumpCacheHours: getSetting('jump_cache_hours') || '24',

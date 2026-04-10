@@ -465,6 +465,15 @@
             <% }) %>
           </tbody>
         </table>
+        <% if (logTotalPages > 1) { %>
+          <div class="pagination" style="margin-top:12px">
+            <a href="/admin?logPage=1" class="page-btn <%= logPage === 1 ? 'active' : '' %>">&laquo;</a>
+            <% for (let p = Math.max(1, logPage - 2); p <= Math.min(logTotalPages, logPage + 2); p++) { %>
+              <a href="/admin?logPage=<%= p %>" class="page-btn <%= p === logPage ? 'active' : '' %>"><%= p %></a>
+            <% } %>
+            <a href="/admin?logPage=<%= logTotalPages %>" class="page-btn <%= logPage === logTotalPages ? 'active' : '' %>">&raquo;</a>
+          </div>
+        <% } %>
       <% } %>
     </div>
 
