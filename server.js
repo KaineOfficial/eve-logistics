@@ -59,6 +59,35 @@ let _serviceTokenExpiry = 0;
 // ── Cache contrats alliance ───────────────────────────────────────────────
 let _contractsCache = null;
 let _contractsCacheExpiry = 0;
+let _knownContractIds = new Set();
+
+// ── Discord webhook ──────────────────────────────────────────────────────
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+
+async function notifyDiscord(contract) {
+  if (!DISCORD_WEBHOOK_URL) return;
+  try {
+    const embed = {
+      title: 'New Courier Contract',
+      color: 0x3b82f6,
+      fields: [
+        { name: 'Issuer',     value: contract.issuer_name, inline: true },
+        { name: 'Route',      value: `${contract.start_name} → ${contract.end_name}`, inline: false },
+        { name: 'Volume',     value: contract.volume ? `${contract.volume.toLocaleString()} m³` : '—', inline: true },
+        { name: 'Collateral', value: contract.collateral ? `${contract.collateral.toLocaleString()} ISK` : '—', inline: true },
+        { name: 'Reward',     value: contract.reward ? `${contract.reward.toLocaleString()} ISK` : '—', inline: true },
+      ],
+      footer: { text: `Contract #${contract.contract_id}` },
+      timestamp: contract.date_issued || new Date().toISOString(),
+    };
+    await axios.post(DISCORD_WEBHOOK_URL, {
+      username: 'TSLC Logistics',
+      embeds: [embed],
+    });
+  } catch (err) {
+    console.error('[discord] webhook error:', err.message);
+  }
+}
 
 async function getServiceToken() {
   if (_serviceToken && Date.now() < _serviceTokenExpiry - 30000) return _serviceToken;
@@ -147,6 +176,16 @@ async function fetchAllianceContracts() {
     start_name:    nameMap[c.start_location_id] || `#${c.start_location_id}`,
     end_name:      nameMap[c.end_location_id]   || `#${c.end_location_id}`,
   })).sort((a, b) => new Date(b.date_issued) - new Date(a.date_issued));
+
+  // 5. Détecter et notifier les nouveaux contrats
+  const currentIds = new Set(enriched.map(c => c.contract_id));
+  if (_knownContractIds.size > 0) {
+    const newContracts = enriched.filter(c => !_knownContractIds.has(c.contract_id) && c.status === 'outstanding');
+    for (const c of newContracts) {
+      notifyDiscord(c);
+    }
+  }
+  _knownContractIds = currentIds;
 
   _contractsCache       = enriched;
   _contractsCacheExpiry = Date.now() + 5 * 60 * 1000;
