@@ -10,40 +10,81 @@
 
   <div class="container wide">
     <h1><%= t.hauler.title %></h1>
-    <p style="color:#94a3b8;"><%= t.hauler.connectedAs %> <strong><%= character.name %></strong></p>
+    <p class="hauler-note"><%= t.hauler.inGameNote %></p>
 
-    <% if (requests.length === 0) { %>
+    <% if (contracts.length === 0) { %>
       <p class="no-contracts"><%= t.hauler.noRequests %></p>
     <% } else { %>
-      <% requests.forEach(r => { %>
-        <div class="hauler-card">
-          <div class="hauler-card-header">
-            <span>#<%= r.id %> — <strong><%= r.char_name %></strong></span>
-            <span class="status-badge status-<%= r.status %>"><%= t.status[r.status] %></span>
-          </div>
-          <div class="hauler-card-body">
-            <div class="hauler-info">
-              <span><strong><%= t.hauler.labelFrom %></strong> <%= r.pickup %></span>
-              <span><strong><%= t.hauler.labelTo %></strong> <%= r.destination %></span>
-              <span><strong><%= t.hauler.labelVolume %></strong> <%= r.volume.toLocaleString() %> m³</span>
-              <span><strong><%= t.hauler.labelCollateral %></strong> <%= r.collateral.toLocaleString() %> ISK</span>
-              <span><strong><%= t.hauler.labelReward %></strong> <%= r.reward ? r.reward.toLocaleString() + ' ISK' : '—' %></span>
-              <% if (r.notes) { %><span><strong><%= t.hauler.labelNotes %></strong> <%= r.notes %></span><% } %>
-              <% if (r.hauler_name) { %><span><strong><%= t.hauler.labelHauler %></strong> <%= r.hauler_name %></span><% } %>
-            </div>
-            <form class="status-form" action="/hauler/<%= r.id %>/status" method="POST">
-              <select name="status" class="status-select">
-                <option value="pending"    <%= r.status === 'pending'    ? 'selected' : '' %>><%= t.status.pending %></option>
-                <option value="accepted"   <%= r.status === 'accepted'   ? 'selected' : '' %>><%= t.status.accepted %></option>
-                <option value="in_transit" <%= r.status === 'in_transit' ? 'selected' : '' %>><%= t.status.in_transit %></option>
-                <option value="delivered"  <%= r.status === 'delivered'  ? 'selected' : '' %>><%= t.status.delivered %></option>
-                <option value="cancelled"  <%= r.status === 'cancelled'  ? 'selected' : '' %>><%= t.status.cancelled %></option>
-              </select>
-              <button type="submit" class="nav-btn refresh"><%= t.hauler.updateBtn %></button>
-            </form>
-          </div>
+
+      <%
+        const outstanding = contracts.filter(c => c.status === 'outstanding');
+        const inProgress  = contracts.filter(c => c.status === 'in_progress');
+      %>
+
+      <% if (outstanding.length > 0) { %>
+        <div class="section-header">
+          <h2><%= t.status.outstanding %> <span class="badge badge-outstanding"><%= outstanding.length %></span></h2>
         </div>
-      <% }) %>
+        <table class="contracts-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><%= t.freight.colRequester %></th>
+              <th><%= t.freight.colFrom %></th>
+              <th><%= t.freight.colTo %></th>
+              <th><%= t.freight.colVolume %></th>
+              <th><%= t.freight.colCollateral %></th>
+              <th><%= t.freight.colReward %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% outstanding.forEach(c => { %>
+              <tr>
+                <td>#<%= c.contract_id %></td>
+                <td><%= c.issuer_name %></td>
+                <td><%= c.start_name %></td>
+                <td><%= c.end_name %></td>
+                <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+                <td><%= c.collateral ? c.collateral.toLocaleString() + ' ISK' : '—' %></td>
+                <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+
+      <% if (inProgress.length > 0) { %>
+        <div class="section-header" style="margin-top:24px;">
+          <h2><%= t.status.in_progress %> <span class="badge badge-inprogress"><%= inProgress.length %></span></h2>
+        </div>
+        <table class="contracts-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><%= t.freight.colRequester %></th>
+              <th><%= t.freight.colFrom %></th>
+              <th><%= t.freight.colTo %></th>
+              <th><%= t.freight.colVolume %></th>
+              <th><%= t.freight.colReward %></th>
+              <th><%= t.freight.colHauler %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% inProgress.forEach(c => { %>
+              <tr>
+                <td>#<%= c.contract_id %></td>
+                <td><%= c.issuer_name %></td>
+                <td><%= c.start_name %></td>
+                <td><%= c.end_name %></td>
+                <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+                <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+                <td><%= c.acceptor_name || '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+
     <% } %>
   </div>
 

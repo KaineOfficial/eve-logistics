@@ -39,10 +39,12 @@ const tokenUrl    = 'https://login.eveonline.com/v2/oauth/token';
 const scopes      = process.env.SCOPES || 'publicData';
 const allianceId  = parseInt(process.env.ALLIANCE_ID);
 
-// ── Configuration fret ────────────────────────────────────────────────────
-const FREIGHT_CONFIG = {
+// ── Standards de hauling (affiché sur la page /freight) ──────────────────
+const FREIGHT_STANDARDS = {
   maxVolume:     200_000,
   maxCollateral: 10_000_000_000,
+  expirationWeeks: 4,
+  daysToComplete:  7,
   tiers: [
     { maxCollateral: 1_000_000_000,  ratePerM3: 600  },
     { maxCollateral: 5_000_000_000,  ratePerM3: 950  },
@@ -53,6 +55,10 @@ const FREIGHT_CONFIG = {
 // ── Token du compte service (cache mémoire + rotation en DB) ─────────────
 let _serviceToken = null;
 let _serviceTokenExpiry = 0;
+
+// ── Cache contrats alliance ───────────────────────────────────────────────
+let _contractsCache = null;
+let _contractsCacheExpiry = 0;
 
 async function getServiceToken() {
   if (_serviceToken && Date.now() < _serviceTokenExpiry - 30000) return _serviceToken;
@@ -78,6 +84,66 @@ async function getServiceToken() {
   return _serviceToken;
 }
 
+// ── Contrats alliance depuis ESI (cache 5 min) ───────────────────────────
+async function fetchAllianceContracts() {
+  if (_contractsCache && Date.now() < _contractsCacheExpiry) return _contractsCache;
+
+  const token   = await getServiceToken();
+  const authHdr = { Authorization: `Bearer ${token}` };
+
+  // 1. Contrats courier de l'alliance
+  const res      = await axios.get(
+    `https://esi.evetech.net/v1/alliances/${allianceId}/contracts/`,
+    { headers: authHdr }
+  );
+  const couriers = res.data.filter(c => c.type === 'courier');
+
+  // 2. Batch-résolution noms (personnages + stations NPC)
+  const charIds    = [...new Set(couriers.flatMap(c =>
+    [c.issuer_id, c.acceptor_id].filter(Boolean)
+  ))];
+  const npcStatIds = [...new Set(couriers.flatMap(c =>
+    [c.start_location_id, c.end_location_id].filter(id => id < 1_000_000_000_000)
+  ))];
+  const allIds = [...charIds, ...npcStatIds];
+
+  let nameMap = {};
+  if (allIds.length > 0) {
+    const namesRes = await axios.post(
+      'https://esi.evetech.net/v1/universe/names/', allIds,
+      { headers: authHdr }
+    );
+    namesRes.data.forEach(n => { nameMap[n.id] = n.name; });
+  }
+
+  // 3. Structures joueur (IDs > 1e12)
+  const structIds = [...new Set(couriers.flatMap(c =>
+    [c.start_location_id, c.end_location_id].filter(id => id >= 1_000_000_000_000)
+  ))];
+  await Promise.all(structIds.map(async id => {
+    try {
+      const s = await axios.get(
+        `https://esi.evetech.net/v2/universe/structures/${id}/`,
+        { headers: authHdr }
+      );
+      nameMap[id] = s.data.name;
+    } catch { nameMap[id] = `Structure #${id}`; }
+  }));
+
+  // 4. Enrichir et trier
+  const enriched = couriers.map(c => ({
+    ...c,
+    issuer_name:   nameMap[c.issuer_id]         || `#${c.issuer_id}`,
+    acceptor_name: c.acceptor_id ? (nameMap[c.acceptor_id] || `#${c.acceptor_id}`) : null,
+    start_name:    nameMap[c.start_location_id] || `#${c.start_location_id}`,
+    end_name:      nameMap[c.end_location_id]   || `#${c.end_location_id}`,
+  })).sort((a, b) => new Date(b.date_issued) - new Date(a.date_issued));
+
+  _contractsCache       = enriched;
+  _contractsCacheExpiry = Date.now() + 5 * 60 * 1000;
+  return enriched;
+}
+
 // ── Middlewares ───────────────────────────────────────────────────────────
 function requireMember(req, res, next) {
   if (!req.session.character) return res.redirect('/login');
@@ -100,25 +166,27 @@ function requireHauler(req, res, next) {
 // ════════════════════════════════════════════════════════════════════════════
 
 // HOME
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   if (!req.session.character) return res.render('index');
 
   const char = req.session.character;
+  let stats       = { outstanding: 0, in_progress: 0, finished: 0, cancelled: 0 };
+  let myContracts = [];
 
-  const stats = {};
-  ['pending', 'accepted', 'in_transit', 'delivered', 'cancelled'].forEach(s => {
-    stats[s] = db.prepare('SELECT COUNT(*) as n FROM requests WHERE status = ?').get(s).n;
-  });
+  if (char.allianceId === allianceId) {
+    try {
+      const contracts = await fetchAllianceContracts();
+      stats.outstanding = contracts.filter(c => c.status === 'outstanding').length;
+      stats.in_progress = contracts.filter(c => c.status === 'in_progress').length;
+      stats.finished    = contracts.filter(c => ['finished', 'finished_issuer', 'finished_contractor'].includes(c.status)).length;
+      stats.cancelled   = contracts.filter(c => ['cancelled', 'rejected', 'failed'].includes(c.status)).length;
+      myContracts       = contracts.filter(c => c.issuer_id === char.id).slice(0, 5);
+    } catch (err) {
+      console.error('[dashboard] ESI error:', err.message);
+    }
+  }
 
-  const myRequests = db.prepare(
-    'SELECT * FROM requests WHERE char_id = ? ORDER BY created_at DESC LIMIT 5'
-  ).all(char.id);
-
-  const activeCount = db.prepare(
-    "SELECT COUNT(*) as n FROM requests WHERE status NOT IN ('delivered','cancelled')"
-  ).get().n;
-
-  res.render('dashboard', { stats, myRequests, activeCount, allianceId });
+  res.render('dashboard', { stats, myContracts, allianceId });
 });
 
 // LOGIN
@@ -238,40 +306,16 @@ app.get('/callback', async (req, res) => {
   }
 });
 
-// ── FRET ──────────────────────────────────────────────────────────────────
+// ── FRET (contrats ESI) ───────────────────────────────────────────────────
 
-app.get('/freight', requireMember, (_req, res) => {
-  const requests = db.prepare('SELECT * FROM requests ORDER BY created_at DESC').all();
-  res.render('freight', { requests });
-});
-
-app.get('/freight/new', requireMember, (_req, res) => {
-  res.render('freight-new', { freightConfig: FREIGHT_CONFIG });
-});
-
-app.post('/freight/new', requireMember, (req, res) => {
-  const { pickup, destination, volume, collateral, reward, notes } = req.body;
-
-  const vol = parseFloat(volume) || 0;
-  const col = parseFloat(collateral) || 0;
-  if (vol > FREIGHT_CONFIG.maxVolume)     return res.status(400).send('Volume trop élevé (max 200 000 m³)');
-  if (col > FREIGHT_CONFIG.maxCollateral) return res.status(400).send('Collateral trop élevé (max 10B ISK)');
-
-  db.prepare(`
-    INSERT INTO requests (char_name, char_id, pickup, destination, volume, collateral, reward, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    req.session.character.name,
-    req.session.character.id,
-    pickup.trim(),
-    destination.trim(),
-    vol,
-    col,
-    parseFloat(reward) || 0,
-    (notes || '').trim()
-  );
-
-  res.redirect('/freight');
+app.get('/freight', requireMember, async (_req, res) => {
+  try {
+    const contracts = await fetchAllianceContracts();
+    res.render('freight', { contracts, standards: FREIGHT_STANDARDS });
+  } catch (err) {
+    console.error('[freight] ESI error:', err.message);
+    res.render('freight', { contracts: [], standards: FREIGHT_STANDARDS });
+  }
 });
 
 // ── RECHERCHE STATIONS ───────────────────────────────────────────────────
@@ -326,25 +370,17 @@ app.get('/api/stations', async (req, res) => {
   }
 });
 
-// ── HAULER ────────────────────────────────────────────────────────────────
+// ── HAULER (contrats ESI actifs) ─────────────────────────────────────────
 
-app.get('/hauler', requireHauler, (_req, res) => {
-  const requests = db.prepare(
-    "SELECT * FROM requests WHERE status NOT IN ('delivered','cancelled') ORDER BY created_at ASC"
-  ).all();
-  res.render('hauler', { requests });
-});
-
-app.post('/hauler/:id/status', requireHauler, (req, res) => {
-  const { status } = req.body;
-  const validStatuses = ['pending', 'accepted', 'in_transit', 'delivered', 'cancelled'];
-  if (!validStatuses.includes(status)) return res.status(400).send('Statut invalide');
-
-  db.prepare(
-    'UPDATE requests SET status = ?, hauler_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-  ).run(status, req.session.character.name, req.params.id);
-
-  res.redirect('/hauler');
+app.get('/hauler', requireHauler, async (_req, res) => {
+  try {
+    const contracts = await fetchAllianceContracts();
+    const active    = contracts.filter(c => ['outstanding', 'in_progress'].includes(c.status));
+    res.render('hauler', { contracts: active });
+  } catch (err) {
+    console.error('[hauler] ESI error:', err.message);
+    res.render('hauler', { contracts: [] });
+  }
 });
 
 // LANGUE

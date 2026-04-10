@@ -11,10 +11,41 @@
   <div class="container wide">
     <div class="page-header">
       <h1><%= t.freight.title %></h1>
-      <a href="/freight/new" class="nav-btn refresh"><%= t.freight.newBtn %></a>
     </div>
 
-    <% if (requests.length === 0) { %>
+    <!-- Carte standards de hauling -->
+    <div class="standards-card">
+      <div class="standards-header">
+        <span class="standards-title"><%= t.freight.standardsTitle %></span>
+      </div>
+      <div class="standards-body">
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsVolume %></div>
+          <div class="standards-value"><%= standards.maxVolume.toLocaleString() %> m³</div>
+        </div>
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsCost %></div>
+          <div class="standards-tiers">
+            <% standards.tiers.forEach(tier => { %>
+              <div class="standards-tier">
+                <span class="tier-limit">&le; <%= (tier.maxCollateral / 1e9).toLocaleString() %> B ISK</span>
+                <span class="tier-rate"><%= tier.ratePerM3.toLocaleString() %> ISK/m³</span>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsExpiry %></div>
+          <div class="standards-value"><%= standards.expirationWeeks %> <%= t.freight.standardsWeeks %></div>
+        </div>
+        <div class="standards-section">
+          <div class="standards-label"><%= t.freight.standardsDays %></div>
+          <div class="standards-value"><%= standards.daysToComplete %> <%= t.freight.standardsDaysUnit %></div>
+        </div>
+      </div>
+    </div>
+
+    <% if (contracts.length === 0) { %>
       <p class="no-contracts"><%= t.freight.noRequests %></p>
     <% } else { %>
       <table class="contracts-table">
@@ -32,17 +63,17 @@
           </tr>
         </thead>
         <tbody>
-          <% requests.forEach(r => { %>
+          <% contracts.forEach(c => { %>
             <tr>
-              <td>#<%= r.id %></td>
-              <td><%= r.char_name %></td>
-              <td><%= r.pickup %></td>
-              <td><%= r.destination %></td>
-              <td><%= r.volume.toLocaleString() %></td>
-              <td><%= r.collateral.toLocaleString() %> ISK</td>
-              <td><%= r.reward ? r.reward.toLocaleString() + ' ISK' : '—' %></td>
-              <td><span class="status-badge status-<%= r.status %>"><%= t.status[r.status] %></span></td>
-              <td><%= r.hauler_name || '—' %></td>
+              <td>#<%= c.contract_id %></td>
+              <td><%= c.issuer_name %></td>
+              <td><%= c.start_name %></td>
+              <td><%= c.end_name %></td>
+              <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+              <td><%= c.collateral ? c.collateral.toLocaleString() + ' ISK' : '—' %></td>
+              <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+              <td><span class="status-badge status-<%= c.status %>"><%= t.status[c.status] || c.status %></span></td>
+              <td><%= c.acceptor_name || '—' %></td>
             </tr>
           <% }) %>
         </tbody>
