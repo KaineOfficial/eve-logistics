@@ -81,9 +81,11 @@ pm2 start server.js --name eve-app
 pm2 save
 ```
 
-5. Deploy updates:
+5. Deploy updates (on VPS):
 ```bash
-./deploy.sh
+git pull origin main
+npm install
+pm2 restart eve-app --update-env
 ```
 
 ## Project Structure
