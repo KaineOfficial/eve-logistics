@@ -289,17 +289,31 @@ app.get('/api/stations', async (req, res) => {
   const localMatches = COMMON_STATIONS.filter(s => s.toLowerCase().includes(q));
 
   try {
-    // Fuzzwork SDE API — données CCP officielles, pas d'auth requise
-    const fuzzRes  = await axios.get('https://www.fuzzwork.co.uk/api/searchstation.php', {
-      params:  { q, limit: 10 },
-      headers: { Accept: 'application/json' },
-      timeout: 5000
-    });
-    const fuzzNames = (fuzzRes.data || []).map(s => s.stationName).filter(Boolean);
-    const combined  = [...new Set([...localMatches, ...fuzzNames])].sort().slice(0, 10);
+    const token   = await getServiceToken();
+    // Décoder le JWT pour extraire l'ID du personnage service
+    const b64     = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(Buffer.from(b64, 'base64').toString());
+    const charId  = payload.sub.split(':')[2]; // "CHARACTER:EVE:12345" → "12345"
+
+    const searchRes = await axios.get(
+      `https://esi.evetech.net/v3/characters/${charId}/search/`,
+      {
+        params:  { categories: 'station', search: q, language: 'en', strict: false },
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+      }
+    );
+    const ids = (searchRes.data.station || []).slice(0, 8);
+    if (ids.length === 0) return res.json(localMatches.slice(0, 10));
+
+    const namesRes = await axios.post(
+      'https://esi.evetech.net/v3/universe/names/', ids,
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+    );
+    const esiNames = namesRes.data.map(n => n.name);
+    const combined = [...new Set([...localMatches, ...esiNames])].sort().slice(0, 10);
     res.json(combined);
   } catch (err) {
-    console.error('[stations] Fuzzwork error:', err.response?.status, err.message);
+    console.error('[stations] error:', err.response?.status, err.response?.data || err.message);
     res.json(localMatches.slice(0, 10));
   }
 });
