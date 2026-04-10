@@ -285,20 +285,21 @@ app.get('/api/stations', async (req, res) => {
   const q = (req.query.q || '').trim().toLowerCase();
   if (q.length < 3) return res.json([]);
 
-  // Correspondances locales (toujours disponibles)
+  // Correspondances locales (toujours disponibles, réponse instantanée)
   const localMatches = COMMON_STATIONS.filter(s => s.toLowerCase().includes(q));
 
   try {
+    const token     = await getServiceToken();
     const searchRes = await axios.get('https://esi.evetech.net/v2/search/', {
-      params: { categories: 'station', datasource: 'tranquility', search: q, language: 'en', strict: false },
-      headers:  { Accept: 'application/json' }
+      params:  { categories: 'station', datasource: 'tranquility', search: q, language: 'en', strict: false },
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
     });
     const ids = (searchRes.data.station || []).slice(0, 8);
     if (ids.length === 0) return res.json(localMatches.slice(0, 10));
 
     const namesRes = await axios.post(
       'https://esi.evetech.net/v3/universe/names/', ids,
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
     );
     const esiNames = namesRes.data.map(n => n.name);
     const combined = [...new Set([...localMatches, ...esiNames])].sort().slice(0, 10);
