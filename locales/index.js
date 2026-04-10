@@ -2,6 +2,7 @@ module.exports = {
   en: {
     nav: {
       home: 'Home', freight: 'Freight', hauler: 'Hauler',
+      calculator: 'Calculator',
       login: 'Login', logout: 'Logout'
     },
     index: {
@@ -59,12 +60,29 @@ module.exports = {
       message: "This section is reserved for members of the Tilean Dominion alliance.",
       back: 'Back to home'
     },
+    calc: {
+      title: 'Price Calculator',
+      subtitle: 'Enter the volume and cargo value to get the reward to set in-game.',
+      labelVolume: 'Volume (m³)',
+      labelCollateral: 'Collateral (ISK)',
+      rate: 'Rate applied',
+      reward: 'Reward to set',
+      tiersTitle: 'Pricing tiers',
+      tierCollateral: 'Collateral',
+      tierRate: 'Rate/m³',
+      maxVolume: 'Max volume',
+      maxCollateral: 'Max collateral',
+      errVolume: 'Volume exceeds the 200,000 m³ limit.',
+      errCollateral: 'Collateral exceeds the 10 B ISK limit.',
+      errNoTier: 'No matching pricing tier found.',
+    },
     footer: 'App version'
   },
 
   fr: {
     nav: {
       home: 'Accueil', freight: 'Fret', hauler: 'Hauler',
+      calculator: 'Calculateur',
       login: 'Se connecter', logout: 'Déconnexion'
     },
     index: {
@@ -122,12 +140,29 @@ module.exports = {
       message: "Cette section est réservée aux membres de l'alliance Tilean Dominion.",
       back: "Retour à l'accueil"
     },
+    calc: {
+      title: 'Calculateur de prix',
+      subtitle: 'Entrez le volume et la valeur du cargo pour obtenir la récompense à saisir en jeu.',
+      labelVolume: 'Volume (m³)',
+      labelCollateral: 'Collateral (ISK)',
+      rate: 'Tarif appliqué',
+      reward: 'Récompense à saisir',
+      tiersTitle: 'Paliers tarifaires',
+      tierCollateral: 'Collateral',
+      tierRate: 'Tarif/m³',
+      maxVolume: 'Volume max',
+      maxCollateral: 'Collateral max',
+      errVolume: 'Le volume dépasse la limite de 200 000 m³.',
+      errCollateral: 'Le collateral dépasse la limite de 10 B ISK.',
+      errNoTier: 'Aucun palier tarifaire correspondant.',
+    },
     footer: "Version de l'application"
   },
 
   es: {
     nav: {
       home: 'Inicio', freight: 'Flete', hauler: 'Transportista',
+      calculator: 'Calculadora',
       login: 'Iniciar sesión', logout: 'Cerrar sesión'
     },
     index: {
@@ -184,6 +219,22 @@ module.exports = {
       title: 'Acceso denegado',
       message: 'Esta sección está reservada para miembros de la alianza Tilean Dominion.',
       back: 'Volver al inicio'
+    },
+    calc: {
+      title: 'Calculadora de precios',
+      subtitle: 'Introduce el volumen y el valor del cargo para obtener la recompensa a configurar en el juego.',
+      labelVolume: 'Volumen (m³)',
+      labelCollateral: 'Colateral (ISK)',
+      rate: 'Tarifa aplicada',
+      reward: 'Recompensa a configurar',
+      tiersTitle: 'Niveles de precios',
+      tierCollateral: 'Colateral',
+      tierRate: 'Tarifa/m³',
+      maxVolume: 'Volumen máx.',
+      maxCollateral: 'Colateral máx.',
+      errVolume: 'El volumen supera el límite de 200 000 m³.',
+      errCollateral: 'El colateral supera el límite de 10 B ISK.',
+      errNoTier: 'No se encontró ningún nivel de precios.',
     },
     footer: 'Versión de la aplicación'
   }

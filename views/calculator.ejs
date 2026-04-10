@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <meta charset="UTF-8">
+  <title><%= t.calc.title %> — TSLC</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container" style="max-width:560px">
+    <div class="page-header" style="margin-bottom:8px">
+      <h1><%= t.calc.title %></h1>
+    </div>
+    <p style="margin-top:0;margin-bottom:24px;color:#64748b;font-size:0.9rem"><%= t.calc.subtitle %></p>
+
+    <div class="calc-form">
+      <div class="form-group">
+        <label for="volume"><%= t.calc.labelVolume %></label>
+        <input type="number" id="volume" placeholder="ex: 50000" min="0" max="200000">
+        <span class="field-hint" id="volume-hint"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="collateral"><%= t.calc.labelCollateral %></label>
+        <input type="number" id="collateral" placeholder="ex: 2000000000" min="0">
+        <span class="field-hint" id="collateral-hint"></span>
+      </div>
+
+      <div class="calc-result" id="result-box">
+        <div class="result-row">
+          <span class="result-label"><%= t.calc.rate %></span>
+          <span class="result-value" id="result-rate">—</span>
+        </div>
+        <div class="result-row result-total">
+          <span class="result-label"><%= t.calc.reward %></span>
+          <span class="result-value result-isk" id="result-reward">—</span>
+        </div>
+        <div class="result-error" id="result-error" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Tableau des paliers -->
+    <div style="margin-top:32px">
+      <div class="standards-header" style="border-radius:8px 8px 0 0;border:1px solid #334155;border-bottom:none">
+        <span class="standards-title"><%= t.calc.tiersTitle %></span>
+      </div>
+      <div class="pricing-table" style="border-radius:0 0 8px 8px;border-top:none">
+        <div class="pricing-row">
+          <span><%= t.calc.tierCollateral %></span>
+          <span><%= t.calc.tierRate %></span>
+        </div>
+        <% standards.tiers.forEach(tier => { %>
+        <div class="pricing-row" style="border-top:1px solid #1e293b;padding-top:6px;margin-top:4px">
+          <span>&le; <%= (tier.maxCollateral / 1e9).toLocaleString() %> B ISK</span>
+          <span class="pricing-rate"><%= tier.ratePerM3.toLocaleString() %> ISK/m³</span>
+        </div>
+        <% }) %>
+        <div class="pricing-row pricing-limit-row">
+          <span><%= t.calc.maxVolume %></span>
+          <span><%= standards.maxVolume.toLocaleString() %> m³</span>
+        </div>
+        <div class="pricing-row pricing-limit-row">
+          <span><%= t.calc.maxCollateral %></span>
+          <span><%= (standards.maxCollateral / 1e9).toLocaleString() %> B ISK</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    const TIERS = <%- JSON.stringify(standards.tiers) %>;
+    const MAX_VOLUME     = <%= standards.maxVolume %>;
+    const MAX_COLLATERAL = <%= standards.maxCollateral %>;
+
+    const volInput  = document.getElementById('volume');
+    const colInput  = document.getElementById('collateral');
+    const resRate   = document.getElementById('result-rate');
+    const resReward = document.getElementById('result-reward');
+    const resError  = document.getElementById('result-error');
+    const volHint   = document.getElementById('volume-hint');
+    const colHint   = document.getElementById('collateral-hint');
+
+    const t = {
+      errVolume:     "<%= t.calc.errVolume %>",
+      errCollateral: "<%= t.calc.errCollateral %>",
+      errNoTier:     "<%= t.calc.errNoTier %>",
+      unitISK:       "ISK",
+      unitM3:        "m³",
+    };
+
+    function fmt(n) {
+      return Math.round(n).toLocaleString();
+    }
+
+    function calculate() {
+      const vol = parseFloat(volInput.value);
+      const col = parseFloat(colInput.value);
+
+      resError.style.display = 'none';
+      resRate.textContent   = '—';
+      resReward.textContent = '—';
+      volHint.textContent   = '';
+      colHint.textContent   = '';
+      volHint.className     = 'field-hint';
+      colHint.className     = 'field-hint';
+
+      if (!volInput.value && !colInput.value) return;
+
+      // Validate volume
+      if (isNaN(vol) || vol <= 0) return;
+      if (vol > MAX_VOLUME) {
+        volHint.textContent = t.errVolume;
+        volHint.className   = 'field-hint hint-error';
+        resError.textContent = t.errVolume;
+        resError.style.display = 'block';
+        return;
+      }
+      volHint.textContent = fmt(vol) + ' ' + t.unitM3;
+      volHint.className   = 'field-hint hint-ok';
+
+      if (!colInput.value || isNaN(col) || col < 0) return;
+
+      if (col > MAX_COLLATERAL) {
+        colHint.textContent = t.errCollateral;
+        colHint.className   = 'field-hint hint-error';
+        resError.textContent = t.errCollateral;
+        resError.style.display = 'block';
+        return;
+      }
+      colHint.textContent = fmt(col) + ' ' + t.unitISK;
+      colHint.className   = 'field-hint hint-ok';
+
+      // Find tier
+      const tier = TIERS.find(t => col <= t.maxCollateral);
+      if (!tier) {
+        resError.textContent = t.errNoTier;
+        resError.style.display = 'block';
+        return;
+      }
+
+      const reward = vol * tier.ratePerM3;
+      resRate.textContent   = fmt(tier.ratePerM3) + ' ISK/m³';
+      resReward.textContent = fmt(reward) + ' ISK';
+    }
+
+    volInput.addEventListener('input', calculate);
+    colInput.addEventListener('input', calculate);
+  </script>
+</body>
+</html>

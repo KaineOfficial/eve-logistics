@@ -383,6 +383,11 @@ app.get('/hauler', requireHauler, async (_req, res) => {
   }
 });
 
+// CALCULATEUR
+app.get('/calculator', (req, res) => {
+  res.render('calculator', { standards: FREIGHT_STANDARDS });
+});
+
 // LANGUE
 app.get('/lang/:code', (req, res) => {
   if (['en', 'fr', 'es'].includes(req.params.code)) {
