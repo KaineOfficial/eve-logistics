@@ -161,21 +161,25 @@ async function getServiceToken() {
   return _serviceToken;
 }
 
-// ── Contrats corporation depuis ESI (cache 5 min) ───────────────────────
+// ── Contrats corporation depuis ESI ──────────────────────────────────────
+let _serviceCorpId = null;
+
+async function getServiceCorpId(token) {
+  if (_serviceCorpId) return _serviceCorpId;
+  const b64     = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const payload = JSON.parse(Buffer.from(b64, 'base64').toString());
+  const charId  = payload.sub.split(':')[2];
+  const charRes = await axios.get(`https://esi.evetech.net/latest/characters/${charId}/`);
+  _serviceCorpId = charRes.data.corporation_id;
+  return _serviceCorpId;
+}
+
 async function fetchAllianceContracts() {
   if (_contractsCache && Date.now() < _contractsCacheExpiry) return _contractsCache;
 
   const token   = await getServiceToken();
   const authHdr = { Authorization: `Bearer ${token}` };
-
-  // Extraire le character ID du JWT pour trouver sa corporation
-  const b64     = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  const payload = JSON.parse(Buffer.from(b64, 'base64').toString());
-  const charId  = payload.sub.split(':')[2];
-
-  // Récupérer la corporation du personnage service
-  const charRes = await axios.get(`https://esi.evetech.net/latest/characters/${charId}/`);
-  const corpId  = charRes.data.corporation_id;
+  const corpId  = await getServiceCorpId(token);
 
   // 1. Contrats courier de la corporation
   const res      = await axios.get(
@@ -360,6 +364,7 @@ app.get('/callback', async (req, res) => {
       `).run(newRefreshToken);
       _serviceToken       = null;
       _serviceTokenExpiry = 0;
+      _serviceCorpId      = null;
 
       return res.render('service-setup', {
         characterName: verifyRes.data.CharacterName,
