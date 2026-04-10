@@ -84,16 +84,25 @@ async function getServiceToken() {
   return _serviceToken;
 }
 
-// ── Contrats alliance depuis ESI (cache 5 min) ───────────────────────────
+// ── Contrats corporation depuis ESI (cache 5 min) ───────────────────────
 async function fetchAllianceContracts() {
   if (_contractsCache && Date.now() < _contractsCacheExpiry) return _contractsCache;
 
   const token   = await getServiceToken();
   const authHdr = { Authorization: `Bearer ${token}` };
 
-  // 1. Contrats courier de l'alliance
+  // Extraire le character ID du JWT pour trouver sa corporation
+  const b64     = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const payload = JSON.parse(Buffer.from(b64, 'base64').toString());
+  const charId  = payload.sub.split(':')[2];
+
+  // Récupérer la corporation du personnage service
+  const charRes = await axios.get(`https://esi.evetech.net/latest/characters/${charId}/`);
+  const corpId  = charRes.data.corporation_id;
+
+  // 1. Contrats courier de la corporation
   const res      = await axios.get(
-    `https://esi.evetech.net/v1/alliances/${allianceId}/contracts/`,
+    `https://esi.evetech.net/v1/corporations/${corpId}/contracts/`,
     { headers: authHdr }
   );
   const couriers = res.data.filter(c => c.type === 'courier');
@@ -153,13 +162,6 @@ function requireMember(req, res, next) {
   next();
 }
 
-function requireHauler(req, res, next) {
-  if (!req.session.character) return res.redirect('/login');
-  if (req.session.character.allianceId !== allianceId) {
-    return res.status(403).render('403', { character: req.session.character, version });
-  }
-  next();
-}
 
 // ════════════════════════════════════════════════════════════════════════════
 // ROUTES
@@ -306,17 +308,23 @@ app.get('/callback', async (req, res) => {
   }
 });
 
-// ── FRET (contrats ESI) ───────────────────────────────────────────────────
+// ── LOGISTICS (regroupe Freight + Hauler) ────────────────────────────────
 
-app.get('/freight', requireMember, async (_req, res) => {
+app.get('/logistics', requireMember, async (req, res) => {
+  const tab = req.query.tab === 'hauler' ? 'hauler' : 'freight';
   try {
     const contracts = await fetchAllianceContracts();
-    res.render('freight', { contracts, standards: FREIGHT_STANDARDS });
+    const active    = contracts.filter(c => ['outstanding', 'in_progress'].includes(c.status));
+    res.render('logistics', { contracts, active, standards: FREIGHT_STANDARDS, tab });
   } catch (err) {
-    console.error('[freight] ESI error:', err.message);
-    res.render('freight', { contracts: [], standards: FREIGHT_STANDARDS });
+    console.error('[logistics] ESI error:', err.message);
+    res.render('logistics', { contracts: [], active: [], standards: FREIGHT_STANDARDS, tab });
   }
 });
+
+// Redirects anciennes URLs
+app.get('/freight', requireMember, (_req, res) => res.redirect('/logistics'));
+app.get('/hauler', requireMember, (_req, res) => res.redirect('/logistics?tab=hauler'));
 
 // ── RECHERCHE STATIONS ───────────────────────────────────────────────────
 
@@ -370,18 +378,6 @@ app.get('/api/stations', async (req, res) => {
   }
 });
 
-// ── HAULER (contrats ESI actifs) ─────────────────────────────────────────
-
-app.get('/hauler', requireHauler, async (_req, res) => {
-  try {
-    const contracts = await fetchAllianceContracts();
-    const active    = contracts.filter(c => ['outstanding', 'in_progress'].includes(c.status));
-    res.render('hauler', { contracts: active });
-  } catch (err) {
-    console.error('[hauler] ESI error:', err.message);
-    res.render('hauler', { contracts: [] });
-  }
-});
 
 // CALCULATEUR
 app.get('/calculator', (req, res) => {

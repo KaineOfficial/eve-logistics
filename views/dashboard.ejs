@@ -44,12 +44,12 @@
           <div class="hauler-summary-text"><%= t.dashboard.haulerActive %></div>
           <div class="hauler-summary-count"><%= stats.outstanding %></div>
         </div>
-        <a href="/hauler" class="nav-btn hauler"><%= t.dashboard.haulerBtn %></a>
+        <a href="/logistics?tab=hauler" class="nav-btn hauler"><%= t.dashboard.haulerBtn %></a>
       </div>
 
       <div class="section-header">
         <h2><%= t.dashboard.myRequests %></h2>
-        <a href="/freight"><%= t.dashboard.seeAll %></a>
+        <a href="/logistics"><%= t.dashboard.seeAll %></a>
       </div>
 
       <% if (myContracts.length === 0) { %>

@@ -1,7 +1,7 @@
 module.exports = {
   en: {
     nav: {
-      home: 'Home', freight: 'Freight', hauler: 'Hauler',
+      home: 'Home', logistics: 'Logistics',
       calculator: 'Calculator',
       login: 'Login', logout: 'Logout'
     },
@@ -9,6 +9,11 @@ module.exports = {
       title: 'EVE Online Panel',
       subtitle: 'Login required to access the dashboard',
       loginBtn: 'Login with EVE Online'
+    },
+    logistics: {
+      title: 'Logistics',
+      tabFreight: 'Contracts',
+      tabHauler: 'Hauler Panel',
     },
     dashboard: {
       title: 'Dashboard',
@@ -81,7 +86,7 @@ module.exports = {
 
   fr: {
     nav: {
-      home: 'Accueil', freight: 'Fret', hauler: 'Hauler',
+      home: 'Accueil', logistics: 'Logistique',
       calculator: 'Calculateur',
       login: 'Se connecter', logout: 'Déconnexion'
     },
@@ -89,6 +94,11 @@ module.exports = {
       title: 'Panel EVE Online',
       subtitle: 'Connexion requise pour accéder au dashboard',
       loginBtn: 'Se connecter avec EVE Online'
+    },
+    logistics: {
+      title: 'Logistique',
+      tabFreight: 'Contrats',
+      tabHauler: 'Panel Hauler',
     },
     dashboard: {
       title: 'Dashboard',
@@ -161,7 +171,7 @@ module.exports = {
 
   es: {
     nav: {
-      home: 'Inicio', freight: 'Flete', hauler: 'Transportista',
+      home: 'Inicio', logistics: 'Logística',
       calculator: 'Calculadora',
       login: 'Iniciar sesión', logout: 'Cerrar sesión'
     },
@@ -169,6 +179,11 @@ module.exports = {
       title: 'Panel EVE Online',
       subtitle: 'Inicio de sesión requerido para acceder al panel',
       loginBtn: 'Iniciar sesión con EVE Online'
+    },
+    logistics: {
+      title: 'Logística',
+      tabFreight: 'Contratos',
+      tabHauler: 'Panel de transportista',
     },
     dashboard: {
       title: 'Panel de control',

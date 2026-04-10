@@ -783,3 +783,35 @@ td.label {
 .nav-btn.calc:hover {
   background: #0891b2;
 }
+
+/* Tabs (logistics page) */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #334155;
+}
+
+.tab {
+  display: inline-block;
+  padding: 10px 24px;
+  background: none;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: bold;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 0;
+}
+
+.tab:hover {
+  color: #e2e8f0;
+  background: none;
+}
+
+.tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background: none;
+}
