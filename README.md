@@ -59,4 +59,8 @@ pm2 save
 
 ## License
 
-This software requires a valid license key. Contact **Yashiro Yamamoto** in-game or via Discord for pricing and licensing.
+This software requires a valid license key. The panel verifies the license at startup against a remote server. If the server is temporarily unreachable, a 24-hour local cache is used.
+
+Without a valid license, the panel will not start.
+
+Contact **Yashiro Yamamoto** in-game or via Discord for pricing and licensing.
