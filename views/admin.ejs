@@ -7,6 +7,9 @@
 <body>
   <%- include('partials/navbar') %>
 
+  <!-- Toast notification -->
+  <div class="toast" id="toast" style="display:none">Saved!</div>
+
   <div class="container wide">
     <div class="page-header">
       <h1><%= t.admin.title %></h1>
@@ -77,6 +80,29 @@
         </div>
         <div class="form-actions">
           <button type="submit" class="submit-btn"><%= t.admin.saveDiscord %></button>
+        </div>
+      </form>
+
+      <!-- Discord events -->
+      <form method="POST" action="/admin/settings" style="margin-top:16px;padding-top:16px;border-top:1px solid #334155">
+        <input type="hidden" name="section" value="discord_events">
+        <h3 class="admin-subtitle">Event Notifications</h3>
+        <div class="admin-grid">
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" name="evt_new" <%= discordEvents.new ? 'checked' : '' %>> New contract</label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" name="evt_accepted" <%= discordEvents.accepted ? 'checked' : '' %>> Contract accepted</label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" name="evt_delivered" <%= discordEvents.delivered ? 'checked' : '' %>> Contract delivered</label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label><input type="checkbox" name="evt_failed" <%= discordEvents.failed ? 'checked' : '' %>> Contract failed/cancelled</label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save Events</button>
         </div>
       </form>
     </div>
@@ -335,6 +361,59 @@
       </form>
     </div>
 
+    <!-- ═══ MAINTENANCE ═══ -->
+    <% if (isAdmin) { %>
+    <div class="admin-section">
+      <h2 class="admin-section-title">Maintenance Mode</h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="maintenance">
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" name="maintenanceEnabled" <%= maintenanceEnabled ? 'checked' : '' %>>
+            Enable maintenance mode
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <input type="text" name="maintenanceMessage" value="<%= maintenanceMessage %>">
+        </div>
+        <p class="admin-hint">Admins can still access the site during maintenance.</p>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save Maintenance</button>
+        </div>
+      </form>
+    </div>
+    <% } %>
+
+    <!-- ═══ PRICE HISTORY ═══ -->
+    <% if (priceHistory.length > 0) { %>
+    <div class="admin-section">
+      <h2 class="admin-section-title">Price History</h2>
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th><%= t.admin.logDate %></th>
+            <th>Admin</th>
+            <th>Target</th>
+            <th>Old</th>
+            <th>New</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% priceHistory.forEach(p => { %>
+            <tr>
+              <td style="white-space:nowrap"><%= new Date(p.created_at).toLocaleString() %></td>
+              <td><%= p.char_name %></td>
+              <td><span class="status-badge status-outstanding"><%= p.target %></span></td>
+              <td style="font-size:0.75rem;color:#f87171;max-width:200px;overflow:hidden;text-overflow:ellipsis"><%= (p.old_value || '').substring(0, 100) %></td>
+              <td style="font-size:0.75rem;color:#4ade80;max-width:200px;overflow:hidden;text-overflow:ellipsis"><%= (p.new_value || '').substring(0, 100) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
     <!-- ═══ STATUS ═══ -->
     <div class="admin-section">
       <h2 class="admin-section-title"><%= t.admin.status %></h2>
@@ -434,6 +513,59 @@
         <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
       `;
       container.appendChild(row);
+    }
+
+    // Toast notification
+    if (window.location.search.includes('saved=1')) {
+      const toast = document.getElementById('toast');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+      history.replaceState(null, '', '/admin');
+    }
+
+    // Character search for roles
+    const charIdInput = document.querySelector('input[name="charId"]');
+    const charNameInput = document.querySelector('input[name="charName"]');
+    if (charNameInput) {
+      let searchTimeout;
+      charNameInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const q = charNameInput.value.trim();
+        if (q.length < 3) return;
+        searchTimeout = setTimeout(async () => {
+          try {
+            const res = await fetch('/api/character-search?q=' + encodeURIComponent(q));
+            const data = await res.json();
+            if (data.length > 0) {
+              // Auto-fill first match
+              const dropdown = document.getElementById('char-search-dropdown');
+              if (dropdown) dropdown.remove();
+              const dd = document.createElement('div');
+              dd.id = 'char-search-dropdown';
+              dd.className = 'autocomplete-dropdown';
+              dd.style.position = 'absolute';
+              dd.style.zIndex = '50';
+              data.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.textContent = c.name + ' (#' + c.id + ')';
+                item.onclick = () => {
+                  charIdInput.value = c.id;
+                  charNameInput.value = c.name;
+                  dd.remove();
+                };
+                dd.appendChild(item);
+              });
+              charNameInput.parentElement.style.position = 'relative';
+              charNameInput.parentElement.appendChild(dd);
+            }
+          } catch {}
+        }, 400);
+      });
+      document.addEventListener('click', e => {
+        const dd = document.getElementById('char-search-dropdown');
+        if (dd && !dd.contains(e.target) && e.target !== charNameInput) dd.remove();
+      });
     }
   </script>
 </body>

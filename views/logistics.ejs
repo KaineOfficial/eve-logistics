@@ -185,23 +185,60 @@
           <% }) %>
         </tbody>
       </table>
+      <div class="pagination" id="pagination"></div>
     <% } %>
   </div>
 
   <%- include('partials/footer') %>
 
   <script>
+    const PER_PAGE = 25;
+    let currentPage = 1;
     const activeFilter = () => document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
 
-    function applyVisibility() {
+    function getVisibleRows() {
       const q = (document.getElementById('search-input')?.value || '').toLowerCase();
       const filter = activeFilter();
-      document.querySelectorAll('#contracts-table tbody tr').forEach(row => {
+      const rows = Array.from(document.querySelectorAll('#contracts-table tbody tr'));
+      return rows.filter(row => {
         const matchFilter = filter === 'all' || row.dataset.status === filter;
         const matchSearch = !q || row.textContent.toLowerCase().includes(q);
-        row.style.display = (matchFilter && matchSearch) ? '' : 'none';
+        return matchFilter && matchSearch;
       });
     }
+
+    function applyVisibility() {
+      const allRows = Array.from(document.querySelectorAll('#contracts-table tbody tr'));
+      const visible = getVisibleRows();
+      const totalPages = Math.max(1, Math.ceil(visible.length / PER_PAGE));
+      if (currentPage > totalPages) currentPage = 1;
+      const start = (currentPage - 1) * PER_PAGE;
+      const end = start + PER_PAGE;
+
+      allRows.forEach(row => row.style.display = 'none');
+      visible.forEach((row, i) => {
+        row.style.display = (i >= start && i < end) ? '' : 'none';
+      });
+
+      renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+      const container = document.getElementById('pagination');
+      if (!container || totalPages <= 1) { if (container) container.innerHTML = ''; return; }
+      let html = '<button class="page-btn" onclick="goPage(1)" ' + (currentPage === 1 ? 'disabled' : '') + '>&laquo;</button>';
+      html += '<button class="page-btn" onclick="goPage(' + (currentPage - 1) + ')" ' + (currentPage === 1 ? 'disabled' : '') + '>&lsaquo;</button>';
+      const startP = Math.max(1, currentPage - 2);
+      const endP = Math.min(totalPages, currentPage + 2);
+      for (let i = startP; i <= endP; i++) {
+        html += '<button class="page-btn ' + (i === currentPage ? 'active' : '') + '" onclick="goPage(' + i + ')">' + i + '</button>';
+      }
+      html += '<button class="page-btn" onclick="goPage(' + (currentPage + 1) + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>&rsaquo;</button>';
+      html += '<button class="page-btn" onclick="goPage(' + totalPages + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>&raquo;</button>';
+      container.innerHTML = html;
+    }
+
+    function goPage(p) { currentPage = p; applyVisibility(); }
 
     // Filtrage
     document.getElementById('filters')?.addEventListener('click', e => {
@@ -209,11 +246,12 @@
       if (!btn) return;
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      currentPage = 1;
       applyVisibility();
     });
 
     // Recherche
-    document.getElementById('search-input')?.addEventListener('input', applyVisibility);
+    document.getElementById('search-input')?.addEventListener('input', () => { currentPage = 1; applyVisibility(); });
 
     // Tri colonnes
     document.querySelectorAll('.sortable th[data-sort]').forEach((th, colIdx) => {
@@ -236,8 +274,12 @@
           return asc ? va.localeCompare(vb) : vb.localeCompare(va);
         });
         rows.forEach(r => tbody.appendChild(r));
+        applyVisibility();
       });
     });
+
+    // Init pagination
+    applyVisibility();
   </script>
 </body>
 </html>

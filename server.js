@@ -39,6 +39,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Maintenance mode middleware
+app.use((req, res, next) => {
+  if (getSetting('maintenance_mode') === 'true') {
+    // Admins can always access
+    if (req.session.character && getRole(req.session.character.id) === 'admin') return next();
+    // Allow login/callback/lang/static
+    if (['/login', '/callback', '/logout'].includes(req.path) || req.path.startsWith('/lang/')) return next();
+    const msg = getSetting('maintenance_message') || 'Site under maintenance.';
+    return res.status(503).render('maintenance', { message: msg });
+  }
+  next();
+});
+
 const baseAuthUrl = 'https://login.eveonline.com/v2/oauth/authorize/';
 const tokenUrl    = 'https://login.eveonline.com/v2/oauth/token';
 const scopes      = process.env.SCOPES || 'publicData';
@@ -89,6 +102,12 @@ function getRole(charId) {
 
 function setRole(charId, charName, role) {
   db.prepare('INSERT INTO roles (char_id, char_name, role) VALUES (?, ?, ?) ON CONFLICT(char_id) DO UPDATE SET char_name = excluded.char_name, role = excluded.role').run(charId, charName, role);
+}
+
+function logPriceChange(charId, charName, target, oldVal, newVal) {
+  db.prepare('INSERT INTO price_history (char_id, char_name, target, old_value, new_value) VALUES (?, ?, ?, ?, ?)').run(
+    charId, charName, target, typeof oldVal === 'string' ? oldVal : JSON.stringify(oldVal), typeof newVal === 'string' ? newVal : JSON.stringify(newVal)
+  );
 }
 
 function getAllRoles() {
@@ -179,6 +198,9 @@ const DISCORD_EVENTS = {
 async function notifyDiscord(contract, type = 'new') {
   const webhookUrl = getDiscordWebhookUrl();
   if (!webhookUrl || getSetting('discord_notifications') !== 'true') return;
+  // Check per-event settings
+  const eventKey = `discord_event_${type}`;
+  if (getSetting(eventKey) === 'false') return;
   try {
     const vol = contract.volume ? `\`${contract.volume.toLocaleString()} m³\`` : '—';
     const col = contract.collateral ? `\`${contract.collateral.toLocaleString()} ISK\`` : '—';
@@ -742,6 +764,100 @@ app.get('/api/jumps', async (req, res) => {
   }
 });
 
+// ── CONTRACT NOTES ───────────────────────────────────────────────────────
+
+app.post('/api/notes', requireDirector, (req, res) => {
+  const { contractId, note } = req.body;
+  if (!contractId || !note) return res.json({ error: 'missing params' });
+  const char = req.session.character;
+  db.prepare('INSERT INTO contract_notes (contract_id, char_id, char_name, note) VALUES (?, ?, ?, ?)').run(
+    contractId, char.id, char.name, note.trim()
+  );
+  res.json({ ok: true });
+});
+
+app.get('/api/notes/:contractId', requireMember, (req, res) => {
+  const notes = db.prepare('SELECT * FROM contract_notes WHERE contract_id = ? ORDER BY created_at DESC').all(req.params.contractId);
+  res.json(notes);
+});
+
+// ── CHARACTER SEARCH (ESI) ──────────────────────────────────────────────
+
+app.get('/api/character-search', requireAdmin, async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 3) return res.json([]);
+  try {
+    const token = await getServiceToken();
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(Buffer.from(b64, 'base64').toString());
+    const charId = payload.sub.split(':')[2];
+    const searchRes = await axios.get(
+      `https://esi.evetech.net/v3/characters/${charId}/search/`,
+      { params: { categories: 'character', search: q, language: 'en', strict: false }, headers: { Authorization: `Bearer ${token}` } }
+    );
+    const ids = (searchRes.data.character || []).slice(0, 10);
+    if (ids.length === 0) return res.json([]);
+    const namesRes = await axios.post('https://esi.evetech.net/v3/universe/names/', ids, { headers: { Authorization: `Bearer ${token}` } });
+    res.json(namesRes.data.filter(n => n.category === 'character').map(n => ({ id: n.id, name: n.name })));
+  } catch (err) {
+    console.error('[char-search] error:', err.message);
+    res.json([]);
+  }
+});
+
+// ── DIRECTOR DASHBOARD ──────────────────────────────────────────────────
+
+app.get('/director', requireDirector, async (req, res) => {
+  try {
+    const contracts = await fetchAllianceContracts();
+    const finished = contracts.filter(c => ['finished','finished_issuer','finished_contractor'].includes(c.status));
+    const outstanding = contracts.filter(c => c.status === 'outstanding');
+    const inProgress = contracts.filter(c => c.status === 'in_progress');
+
+    // Contrats en retard (expiry < 48h)
+    const now = new Date();
+    const urgent = outstanding.filter(c => {
+      if (!c.date_expired) return false;
+      return (new Date(c.date_expired) - now) < 48 * 3600000;
+    });
+
+    // Stats semaine
+    const weekAgo = new Date(now - 7 * 86400000);
+    const weekDelivered = finished.filter(c => c.date_completed && new Date(c.date_completed) > weekAgo);
+    const weekRevenue = weekDelivered.reduce((s, c) => s + (c.reward || 0), 0);
+    const weekVolume = weekDelivered.reduce((s, c) => s + (c.volume || 0), 0);
+
+    // Haulers actifs cette semaine
+    const activeHaulers = [...new Set(weekDelivered.map(c => c.acceptor_name).filter(Boolean))];
+
+    // Price history
+    const priceHistory = db.prepare('SELECT * FROM price_history ORDER BY created_at DESC LIMIT 10').all();
+
+    res.render('director', {
+      stats: {
+        total: contracts.length,
+        outstanding: outstanding.length,
+        inProgress: inProgress.length,
+        delivered: finished.length,
+        urgent: urgent.length,
+        weekDelivered: weekDelivered.length,
+        weekRevenue: Math.round(weekRevenue),
+        weekVolume: Math.round(weekVolume),
+        activeHaulers: activeHaulers.length,
+      },
+      urgent,
+      activeHaulers,
+      priceHistory,
+    });
+  } catch (err) {
+    console.error('[director] ESI error:', err.message);
+    res.render('director', {
+      stats: { total: 0, outstanding: 0, inProgress: 0, delivered: 0, urgent: 0, weekDelivered: 0, weekRevenue: 0, weekVolume: 0, activeHaulers: 0 },
+      urgent: [], activeHaulers: [], priceHistory: [],
+    });
+  }
+});
+
 // ── ADMIN ────────────────────────────────────────────────────────────────
 
 app.use(express.json());
@@ -757,6 +873,15 @@ app.get('/admin', requireDirector, (req, res) => {
     adminIds:       getAdminIds(),
     roles:          getAllRoles(),
     routes:         getRoutes(false),
+    maintenanceEnabled: getSetting('maintenance_mode') === 'true',
+    maintenanceMessage: getSetting('maintenance_message') || '',
+    discordEvents: {
+      new: getSetting('discord_event_new') !== 'false',
+      accepted: getSetting('discord_event_accepted') !== 'false',
+      delivered: getSetting('discord_event_delivered') !== 'false',
+      failed: getSetting('discord_event_failed') !== 'false',
+    },
+    priceHistory: db.prepare('SELECT * FROM price_history ORDER BY created_at DESC LIMIT 10').all(),
     jumpEnabled:    getSetting('jump_calculation') === 'true',
     jumpPrice:      getSetting('jump_price_per_m3') || '0',
     jumpCacheHours: getSetting('jump_cache_hours') || '24',
@@ -796,7 +921,9 @@ app.post('/admin/settings', requireAdmin, (req, res) => {
       if (mc > 0 && rp > 0) standards.tiers.push({ maxCollateral: mc, ratePerM3: rp });
     }
     standards.tiers.sort((a, b) => a.maxCollateral - b.maxCollateral);
+    const oldStandards = getFreightStandards();
     setSetting('freight_standards', standards);
+    logPriceChange(req.session.character.id, req.session.character.name, 'standards', oldStandards, standards);
     logAdmin(req, 'update_standards', JSON.stringify(standards));
   }
 
@@ -835,7 +962,21 @@ app.post('/admin/settings', requireAdmin, (req, res) => {
     logAdmin(req, 'update_jumps', `enabled=${req.body.jumpEnabled === 'on'}, price=${req.body.jumpPrice}/m³/jump`);
   }
 
-  res.redirect('/admin');
+  if (section === 'discord_events') {
+    setSetting('discord_event_new', req.body.evt_new === 'on' ? 'true' : 'false');
+    setSetting('discord_event_accepted', req.body.evt_accepted === 'on' ? 'true' : 'false');
+    setSetting('discord_event_delivered', req.body.evt_delivered === 'on' ? 'true' : 'false');
+    setSetting('discord_event_failed', req.body.evt_failed === 'on' ? 'true' : 'false');
+    logAdmin(req, 'update_discord_events');
+  }
+
+  if (section === 'maintenance') {
+    setSetting('maintenance_mode', req.body.maintenanceEnabled === 'on' ? 'true' : 'false');
+    setSetting('maintenance_message', (req.body.maintenanceMessage || '').trim());
+    logAdmin(req, 'update_maintenance', req.body.maintenanceEnabled === 'on' ? 'enabled' : 'disabled');
+  }
+
+  res.redirect('/admin?saved=1');
 });
 
 // ── Rôles CRUD (admin only) ──────────────────────────────────────────────
@@ -898,6 +1039,16 @@ app.post('/admin/routes/:id/update', requireAdmin, (req, res) => {
     if (mc > 0 && rp > 0) tiers.push({ maxCollateral: mc, ratePerM3: rp });
   }
   tiers.sort((a, b) => a.maxCollateral - b.maxCollateral);
+
+  // Log price change
+  const oldRoute = db.prepare('SELECT * FROM routes WHERE id = ?').get(req.params.id);
+  if (oldRoute) {
+    logPriceChange(req.session.character.id, req.session.character.name,
+      `route:${oldRoute.point_a}↔${oldRoute.point_b}`,
+      { tiers: JSON.parse(oldRoute.tiers || '[]'), surcharge: oldRoute.surcharge },
+      { tiers, surcharge: parseFloat(req.body.surcharge) || 0 }
+    );
+  }
 
   db.prepare(`UPDATE routes SET point_a = ?, point_b = ?, max_volume = ?, expiration_weeks = ?, days_to_complete = ?,
     tiers = ?, surcharge = ?, surcharge_label = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(

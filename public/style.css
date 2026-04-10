@@ -1310,6 +1310,71 @@ td.label {
   50% { opacity: 0.5; }
 }
 
+/* Toast notification */
+.toast {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  background: #14532d;
+  color: #4ade80;
+  border: 1px solid #22c55e;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  animation: toast-in 0.3s ease;
+}
+
+@keyframes toast-in {
+  from { transform: translateX(100px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Director nav button */
+.nav-btn.director-nav {
+  background: #f59e0b;
+}
+
+.nav-btn.director-nav:hover {
+  background: #d97706;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 16px;
+}
+
+.page-btn {
+  padding: 6px 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.page-btn:hover {
+  border-color: #3b82f6;
+  color: #e2e8f0;
+}
+
+.page-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* ============================================================
    RESPONSIVE / MOBILE STYLES
    Appended — do not modify above this line

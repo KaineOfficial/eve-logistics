@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <%- include('partials/head') %>
+  <title><%= t.director?.title || 'Director Dashboard' %> — Tilean Dominion</title>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container wide">
+    <div class="page-header">
+      <h1><%= t.director?.title || 'Director Dashboard' %></h1>
+    </div>
+
+    <!-- Weekly stats -->
+    <div class="stat-cards">
+      <div class="stat-card pending">
+        <div class="stat-number"><%= stats.outstanding %></div>
+        <div class="stat-label"><%= t.director?.outstanding || 'Outstanding' %></div>
+      </div>
+      <div class="stat-card in-transit">
+        <div class="stat-number"><%= stats.inProgress %></div>
+        <div class="stat-label"><%= t.director?.inProgress || 'In Transit' %></div>
+      </div>
+      <div class="stat-card delivered">
+        <div class="stat-number"><%= stats.delivered %></div>
+        <div class="stat-label"><%= t.director?.totalDelivered || 'Total Delivered' %></div>
+      </div>
+      <div class="stat-card cancelled">
+        <div class="stat-number"><%= stats.urgent %></div>
+        <div class="stat-label"><%= t.director?.urgent || 'Urgent (<48h)' %></div>
+      </div>
+    </div>
+
+    <!-- Week performance -->
+    <div class="section-header">
+      <h2><%= t.director?.weekPerf || 'This Week' %></h2>
+    </div>
+    <div class="stat-cards">
+      <div class="stat-card delivered">
+        <div class="stat-number"><%= stats.weekDelivered %></div>
+        <div class="stat-label"><%= t.director?.weekDelivered || 'Deliveries' %></div>
+      </div>
+      <div class="stat-card accepted">
+        <div class="stat-number"><%= stats.weekVolume.toLocaleString() %></div>
+        <div class="stat-label"><%= t.director?.weekVolume || 'Volume (m³)' %></div>
+      </div>
+      <div class="stat-card pending">
+        <div class="stat-number"><%= stats.weekRevenue.toLocaleString() %></div>
+        <div class="stat-label"><%= t.director?.weekRevenue || 'ISK Revenue' %></div>
+      </div>
+      <div class="stat-card in-transit">
+        <div class="stat-number"><%= stats.activeHaulers %></div>
+        <div class="stat-label"><%= t.director?.activeHaulers || 'Active Haulers' %></div>
+      </div>
+    </div>
+
+    <!-- Urgent contracts -->
+    <% if (urgent.length > 0) { %>
+      <div class="section-header" style="margin-top:24px">
+        <h2 style="color:#f87171"><%= t.director?.urgentContracts || 'Urgent Contracts' %></h2>
+      </div>
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th><%= t.freight.colRequester %></th>
+            <th><%= t.freight.colFrom %></th>
+            <th><%= t.freight.colTo %></th>
+            <th><%= t.freight.colVolume %></th>
+            <th><%= t.freight.colReward %></th>
+            <th><%= t.logistics.colTimeLeft %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% urgent.forEach(c => { %>
+            <%
+              const diff = new Date(c.date_expired) - new Date();
+              const hrs = Math.max(0, Math.floor(diff / 3600000));
+            %>
+            <tr>
+              <td>#<%= c.contract_id %></td>
+              <td><%= c.issuer_name %></td>
+              <td><%= c.start_name %></td>
+              <td><%= c.end_name %></td>
+              <td><%= c.volume ? c.volume.toLocaleString() : '—' %></td>
+              <td><%= c.reward ? c.reward.toLocaleString() + ' ISK' : '—' %></td>
+              <td class="expiry-warning"><%= hrs %>h</td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+
+    <!-- Active haulers -->
+    <% if (activeHaulers.length > 0) { %>
+      <div class="section-header" style="margin-top:24px">
+        <h2><%= t.director?.activeHaulersList || 'Active Haulers This Week' %></h2>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <% activeHaulers.forEach(name => { %>
+          <span class="status-badge status-outstanding"><%= name %></span>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <!-- Price history -->
+    <% if (priceHistory.length > 0) { %>
+      <div class="section-header" style="margin-top:24px">
+        <h2><%= t.director?.priceHistory || 'Price History' %></h2>
+      </div>
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th><%= t.admin.logDate %></th>
+            <th>Admin</th>
+            <th>Target</th>
+            <th>Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% priceHistory.forEach(p => { %>
+            <tr>
+              <td style="white-space:nowrap"><%= new Date(p.created_at).toLocaleString() %></td>
+              <td><%= p.char_name %></td>
+              <td><span class="status-badge status-outstanding"><%= p.target %></span></td>
+              <td style="font-size:0.8rem;color:#94a3b8;max-width:400px;overflow:hidden;text-overflow:ellipsis">
+                <%= p.old_value?.substring(0, 80) %> → <%= p.new_value?.substring(0, 80) %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

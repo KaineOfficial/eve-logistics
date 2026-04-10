@@ -62,6 +62,25 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS price_history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    char_id     INTEGER NOT NULL,
+    char_name   TEXT NOT NULL,
+    target      TEXT NOT NULL,
+    old_value   TEXT,
+    new_value   TEXT,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS contract_notes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    contract_id INTEGER NOT NULL,
+    char_id     INTEGER NOT NULL,
+    char_name   TEXT NOT NULL,
+    note        TEXT NOT NULL,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS admin_logs (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     char_id    INTEGER NOT NULL,
@@ -121,6 +140,15 @@ if (routeCount === 0) {
     1
   );
 }
+
+// Seed settings extras
+seedStmt.run('maintenance_mode', 'false');
+seedStmt.run('maintenance_message', 'Site under maintenance. Please check back later.');
+seedStmt.run('discord_event_new', 'true');
+seedStmt.run('discord_event_accepted', 'true');
+seedStmt.run('discord_event_delivered', 'true');
+seedStmt.run('discord_event_failed', 'true');
+seedStmt.run('theme', 'dark');
 
 // Seed rôle admin
 db.prepare('INSERT OR IGNORE INTO roles (char_id, char_name, role) VALUES (?, ?, ?)').run(2115309720, 'Yashiro Yamamoto', 'admin');
