@@ -10,6 +10,7 @@
     <% } %>
   </div>
   <div class="navbar-right">
+    <button class="theme-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme"></button>
     <% if (isDirector) { %>
       <a href="/director" class="nav-btn director-nav">Director</a>
       <a href="/admin" class="nav-btn admin">Admin</a>
@@ -36,3 +37,20 @@
   </div>
 </div>
 <script src="/lang.js"></script>
+<script>
+  // Theme
+  (function() {
+    const theme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = theme === 'dark' ? '\u2600\ufe0f' : '\u{1F319}';
+  })();
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = next === 'dark' ? '\u2600\ufe0f' : '\u{1F319}';
+  }
+</script>

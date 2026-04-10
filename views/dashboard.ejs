@@ -48,6 +48,11 @@
       </div>
       <% } %>
 
+      <!-- Graphique activité 7 jours -->
+      <div class="chart-container">
+        <canvas id="weekChart"></canvas>
+      </div>
+
       <div class="section-header">
         <h2><%= t.dashboard.myRequests %></h2>
         <a href="/my-contracts"><%= t.dashboard.seeAll %></a>
@@ -87,5 +92,43 @@
   </div>
 
   <%- include('partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script>
+    const ctx = document.getElementById('weekChart');
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: <%- JSON.stringify(chartLabels) %>,
+          datasets: [
+            {
+              label: '<%= t.dashboard.outstanding || "Created" %>',
+              data: <%- JSON.stringify(chartCreated) %>,
+              backgroundColor: 'rgba(251, 191, 36, 0.7)',
+              borderRadius: 4,
+            },
+            {
+              label: '<%= t.dashboard.finished || "Delivered" %>',
+              data: <%- JSON.stringify(chartDelivered) %>,
+              backgroundColor: 'rgba(74, 222, 128, 0.7)',
+              borderRadius: 4,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#94a3b8' } },
+          },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+            y: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: 'rgba(51,65,85,0.3)' }, beginAtZero: true }
+          }
+        }
+      });
+    }
+  </script>
 </body>
 </html>

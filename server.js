@@ -424,6 +424,8 @@ app.get('/', async (req, res) => {
   const char = req.session.character;
   let stats       = { outstanding: 0, in_progress: 0, finished: 0, cancelled: 0 };
   let myContracts = [];
+  let chartLabels = [], chartCreated = [], chartDelivered = [];
+  const lang = req.session.lang || 'en';
 
   if (char.allianceId === allianceId) {
     try {
@@ -433,12 +435,27 @@ app.get('/', async (req, res) => {
       stats.finished    = contracts.filter(c => ['finished', 'finished_issuer', 'finished_contractor'].includes(c.status)).length;
       stats.cancelled   = contracts.filter(c => ['cancelled', 'rejected', 'failed', 'deleted', 'reversed'].includes(c.status)).length;
       myContracts       = contracts.filter(c => c.issuer_id === char.id).slice(0, 5);
+
+      // Données pour le graphique (7 derniers jours)
+      const now = new Date();
+      for (let d = 6; d >= 0; d--) {
+        const day = new Date(now - d * 86400000);
+        const dayStr = day.toISOString().slice(0, 10);
+        const created = contracts.filter(c => c.date_issued && c.date_issued.slice(0, 10) === dayStr).length;
+        const delivered = contracts.filter(c => {
+          if (!['finished','finished_issuer','finished_contractor'].includes(c.status)) return false;
+          return c.date_completed && c.date_completed.slice(0, 10) === dayStr;
+        }).length;
+        chartLabels.push(day.toLocaleDateString(lang, { weekday: 'short', day: 'numeric' }));
+        chartCreated.push(created);
+        chartDelivered.push(delivered);
+      }
     } catch (err) {
       console.error('[dashboard] ESI error:', err.message);
     }
   }
 
-  res.render('dashboard', { stats, myContracts, allianceId });
+  res.render('dashboard', { stats, myContracts, allianceId, chartLabels, chartCreated, chartDelivered });
 });
 
 // LOGIN
@@ -833,6 +850,23 @@ app.get('/director', requireDirector, async (req, res) => {
     // Price history
     const priceHistory = db.prepare('SELECT * FROM price_history ORDER BY created_at DESC LIMIT 10').all();
 
+    // Charts data (4 dernières semaines)
+    const weeklyLabels = [], weeklyDelivered = [], weeklyVolume = [], weeklyRevenue = [];
+    for (let w = 3; w >= 0; w--) {
+      const wStart = new Date(now - (w + 1) * 7 * 86400000);
+      const wEnd   = new Date(now - w * 7 * 86400000);
+      const label  = wStart.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+      const wDel   = finished.filter(c => {
+        if (!c.date_completed) return false;
+        const d = new Date(c.date_completed);
+        return d >= wStart && d < wEnd;
+      });
+      weeklyLabels.push(label);
+      weeklyDelivered.push(wDel.length);
+      weeklyVolume.push(Math.round(wDel.reduce((s, c) => s + (c.volume || 0), 0)));
+      weeklyRevenue.push(Math.round(wDel.reduce((s, c) => s + (c.reward || 0), 0)));
+    }
+
     res.render('director', {
       stats: {
         total: contracts.length,
@@ -848,12 +882,14 @@ app.get('/director', requireDirector, async (req, res) => {
       urgent,
       activeHaulers,
       priceHistory,
+      weeklyLabels, weeklyDelivered, weeklyVolume, weeklyRevenue,
     });
   } catch (err) {
     console.error('[director] ESI error:', err.message);
     res.render('director', {
       stats: { total: 0, outstanding: 0, inProgress: 0, delivered: 0, urgent: 0, weekDelivered: 0, weekRevenue: 0, weekVolume: 0, activeHaulers: 0 },
       urgent: [], activeHaulers: [], priceHistory: [],
+      weeklyLabels: [], weeklyDelivered: [], weeklyVolume: [], weeklyRevenue: [],
     });
   }
 });

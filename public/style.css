@@ -1,7 +1,32 @@
+/* Theme variables */
+:root, [data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-card: #1e293b;
+  --bg-input: #0f172a;
+  --bg-hover: #1e3a5f;
+  --border: #334155;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --shadow: rgba(0,0,0,0.5);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-input: #f8fafc;
+  --bg-hover: #e2e8f0;
+  --border: #cbd5e1;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --shadow: rgba(0,0,0,0.1);
+}
+
 /* Navbar */
 .navbar {
   width: 100%;
-  background: #1e293b;
+  background: var(--bg-card);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -51,8 +76,8 @@
 
 body {
   font-family: Arial, sans-serif;
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   margin: 0;
   padding: 0;
   display: flex;
@@ -66,17 +91,17 @@ footer {
   margin-top: 20px;
   text-align: center;
   font-size: 0.9em;
-  color: #94a3b8;
+  color: var(--text-muted);
   padding-bottom: 20px;
 }
 
 /* Styles pour index.ejs */
 .box {
-  background: #1e293b;
+  background: var(--bg-card);
   padding: 40px;
   border-radius: 10px;
   text-align: center;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  box-shadow: 0 0 20px var(--shadow);
   margin: auto;
 }
 
@@ -85,7 +110,7 @@ h1 {
 }
 
 p {
-  color: #94a3b8;
+  color: var(--text-secondary);
   margin-bottom: 20px;
 }
 
@@ -108,10 +133,10 @@ a:hover {
   max-width: 800px;
   width: 100%;
   margin: 80px auto 50px;
-  background: #1e293b;
+  background: var(--bg-card);
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  box-shadow: 0 0 20px var(--shadow);
   box-sizing: border-box;
 }
 
@@ -139,12 +164,12 @@ table {
 
 td {
   padding: 10px;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--border);
 }
 
 td.label {
   font-weight: bold;
-  color: #94a3b8;
+  color: var(--text-secondary);
   width: 40%;
 }
 
@@ -186,22 +211,22 @@ td.label {
 }
 
 .contracts-table th {
-  background: #0f172a;
-  color: #94a3b8;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   text-align: left;
   padding: 8px 10px;
-  border-bottom: 2px solid #334155;
+  border-bottom: 2px solid var(--border);
   font-weight: bold;
 }
 
 .contracts-table td {
   padding: 8px 10px;
-  border-bottom: 1px solid #1e3a5f;
-  color: #e2e8f0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
 }
 
 .contracts-table tbody tr:hover {
-  background: #1e3a5f;
+  background: var(--bg-hover);
 }
 
 /* Token box service setup */
@@ -288,8 +313,8 @@ td.label {
 }
 
 .stat-card {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px;
   text-align: center;
@@ -303,7 +328,7 @@ td.label {
 
 .stat-card .stat-label {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin-top: 4px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -316,8 +341,8 @@ td.label {
 
 /* Bloc hauler résumé dashboard */
 .hauler-summary {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px 20px;
   margin-bottom: 8px;
@@ -797,7 +822,7 @@ td.label {
   display: flex;
   gap: 0;
   margin-bottom: 24px;
-  border-bottom: 2px solid #334155;
+  border-bottom: 2px solid var(--border);
 }
 
 .tab {
@@ -1339,6 +1364,39 @@ td.label {
 
 .nav-btn.director-nav:hover {
   background: #d97706;
+}
+
+/* Theme toggle button */
+.theme-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.theme-btn:hover {
+  border-color: #3b82f6;
+}
+
+/* Chart container */
+.chart-container {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  max-height: 200px;
 }
 
 /* Pagination */

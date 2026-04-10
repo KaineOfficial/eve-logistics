@@ -55,6 +55,16 @@
       </div>
     </div>
 
+    <!-- Charts -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0">
+      <div class="chart-container">
+        <canvas id="deliveriesChart"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
+
     <!-- Urgent contracts -->
     <% if (urgent.length > 0) { %>
       <div class="section-header" style="margin-top:24px">
@@ -135,5 +145,48 @@
   </div>
 
   <%- include('partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script>
+    const chartOpts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+        y: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: 'rgba(51,65,85,0.3)' }, beginAtZero: true }
+      }
+    };
+
+    new Chart(document.getElementById('deliveriesChart'), {
+      type: 'bar',
+      data: {
+        labels: <%- JSON.stringify(weeklyLabels) %>,
+        datasets: [{
+          label: 'Deliveries',
+          data: <%- JSON.stringify(weeklyDelivered) %>,
+          backgroundColor: 'rgba(74, 222, 128, 0.7)',
+          borderRadius: 4,
+        }]
+      },
+      options: { ...chartOpts, plugins: { ...chartOpts.plugins, title: { display: true, text: 'Deliveries / Week', color: '#e2e8f0' } } }
+    });
+
+    new Chart(document.getElementById('revenueChart'), {
+      type: 'line',
+      data: {
+        labels: <%- JSON.stringify(weeklyLabels) %>,
+        datasets: [{
+          label: 'ISK Revenue',
+          data: <%- JSON.stringify(weeklyRevenue) %>,
+          borderColor: '#fbbf24',
+          backgroundColor: 'rgba(251, 191, 36, 0.1)',
+          fill: true,
+          tension: 0.3,
+        }]
+      },
+      options: { ...chartOpts, plugins: { ...chartOpts.plugins, title: { display: true, text: 'ISK Revenue / Week', color: '#e2e8f0' } } }
+    });
+  </script>
 </body>
 </html>
