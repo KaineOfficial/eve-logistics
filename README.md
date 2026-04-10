@@ -57,11 +57,17 @@ cd /var/www/eve-app
 npm install
 ```
 
-2. Create `.env`:
+2. Generate a session secret:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+Copy the output for the next step.
+
+3. Create `.env`:
 ```env
 PORT=3000
 LICENSE_KEY=your_license_key
-SESSION_SECRET=your_secret
+SESSION_SECRET=paste_the_generated_secret_here
 CLIENT_ID=your_eve_client_id
 CLIENT_SECRET=your_eve_client_secret
 CALLBACK_URL=https://your-domain.com/callback
@@ -70,16 +76,22 @@ SERVICE_CLIENT_SECRET=your_service_client_secret
 SCOPES=publicData esi-contracts.read_corporation_contracts.v1 esi-search.search_structures.v1
 ALLIANCE_ID=your_alliance_id
 ADMIN_IDS=your_character_id
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+DEPLOY_WEBHOOK_URL=https://discord.com/api/webhooks/your_deploy_webhook
 ```
 
-3. Start:
+Note: there are **two separate Discord webhooks**:
+- **Contract notifications** (new, accepted, delivered, failed) — configured in the **Admin Panel** on the website, stored in the database
+- **Deploy notifications** — `DEPLOY_WEBHOOK_URL` in the `.env`, used by `deploy.sh`
+
+You do NOT need `DISCORD_WEBHOOK_URL` in the `.env` — contract notifications are managed entirely through the admin panel.
+
+5. Start:
 ```bash
 pm2 start server.js --name eve-app
 pm2 save
 ```
 
-4. Visit `https://your-domain.com/service-setup` and log in with a CEO/director character to authorize ESI access.
+6. Visit `https://your-domain.com/service-setup` and log in with a CEO/director character to authorize ESI access.
 
 ## Pricing
 
