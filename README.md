@@ -71,6 +71,27 @@ Live: https://logistics.tslc.ovh
 - **Process Manager**: PM2
 - **Rate Limiting**: express-rate-limit
 
+## Prerequisites
+
+- A VPS with **Node.js 18+** and **npm** installed
+- **Nginx** as reverse proxy + **Certbot** for SSL
+- A domain name pointing to your VPS
+- **Two EVE Online applications** registered at https://developers.eveonline.com:
+
+### App 1 — User Login
+- **Name**: anything (e.g. "TSLC Panel")
+- **Callback URL**: `https://your-domain.com/callback`
+- **Scopes**: `publicData`
+- This gives you `CLIENT_ID` and `CLIENT_SECRET`
+
+### App 2 — Service Account (ESI access)
+- **Name**: anything (e.g. "TSLC Service")
+- **Callback URL**: `https://your-domain.com/callback` (same)
+- **Scopes**: `esi-contracts.read_corporation_contracts.v1 esi-search.search_structures.v1` (add any other scopes you need)
+- This gives you `SERVICE_CLIENT_ID` and `SERVICE_CLIENT_SECRET`
+
+The service account must be authorized by a character who has **director** or **CEO** role in the corporation whose contracts you want to track.
+
 ## Installation
 
 1. Clone the repository:
@@ -106,7 +127,35 @@ pm2 start server.js --name eve-app
 pm2 save
 ```
 
-5. Deploy updates (on VPS):
+5. Set up the service account token:
+   - Open `https://your-domain.com/service-setup` in your browser
+   - This redirects to EVE SSO — **log in with the CEO/director character** that has access to corporation contracts
+   - After authorization, the refresh token is automatically saved to the database
+   - The panel will now be able to fetch corporation contracts via ESI
+   - If you need to change the service account later, just visit `/service-setup` again
+
+6. Configure Nginx (reverse proxy):
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+Then enable SSL:
+```bash
+sudo certbot --nginx -d your-domain.com
+```
+
+7. Deploy updates (on VPS):
 ```bash
 git pull origin main
 npm install
