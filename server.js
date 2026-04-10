@@ -17,20 +17,22 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: false }));
 
-// Langue (session, défaut anglais)
-app.use((req, res, next) => {
-  const lang = req.session.lang || 'en';
-  res.locals.t    = locales[lang] || locales.en;
-  res.locals.lang = lang;
-  next();
-});
-
 app.use(session({
   store: new FileStore({ path: './sessions', retries: 1 }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false
 }));
+
+// Langue + locals globaux (session, défaut anglais)
+app.use((req, res, next) => {
+  const lang = req.session.lang || 'en';
+  res.locals.t         = locales[lang] || locales.en;
+  res.locals.lang      = lang;
+  res.locals.character = req.session.character || null;
+  res.locals.version   = version;
+  next();
+});
 
 const baseAuthUrl = 'https://login.eveonline.com/v2/oauth/authorize/';
 const tokenUrl    = 'https://login.eveonline.com/v2/oauth/token';
@@ -82,22 +84,13 @@ function requireHauler(req, res, next) {
   next();
 }
 
-// ── Labels statuts ────────────────────────────────────────────────────────
-const STATUS_LABELS = {
-  pending:    "En attente d'acceptation",
-  accepted:   'En attente de transport',
-  in_transit: 'En cours de transport',
-  delivered:  'Livré',
-  cancelled:  'Annulé'
-};
-
 // ════════════════════════════════════════════════════════════════════════════
 // ROUTES
 // ════════════════════════════════════════════════════════════════════════════
 
 // HOME
 app.get('/', (req, res) => {
-  if (!req.session.character) return res.render('index', { version });
+  if (!req.session.character) return res.render('index');
 
   const char = req.session.character;
 
@@ -114,15 +107,7 @@ app.get('/', (req, res) => {
     "SELECT COUNT(*) as n FROM requests WHERE status NOT IN ('delivered','cancelled')"
   ).get().n;
 
-  res.render('dashboard', {
-    character: char,
-    stats,
-    myRequests,
-    activeCount,
-    statusLabels: STATUS_LABELS,
-    allianceId,
-    version
-  });
+  res.render('dashboard', { stats, myRequests, activeCount, allianceId });
 });
 
 // LOGIN
@@ -236,18 +221,13 @@ app.get('/callback', async (req, res) => {
 
 // ── FRET ──────────────────────────────────────────────────────────────────
 
-app.get('/freight', requireMember, (req, res) => {
+app.get('/freight', requireMember, (_req, res) => {
   const requests = db.prepare('SELECT * FROM requests ORDER BY created_at DESC').all();
-  res.render('freight', {
-    requests,
-    statusLabels: STATUS_LABELS,
-    character: req.session.character,
-    version
-  });
+  res.render('freight', { requests });
 });
 
-app.get('/freight/new', requireMember, (req, res) => {
-  res.render('freight-new', { character: req.session.character, version });
+app.get('/freight/new', requireMember, (_req, res) => {
+  res.render('freight-new');
 });
 
 app.post('/freight/new', requireMember, (req, res) => {
@@ -272,16 +252,11 @@ app.post('/freight/new', requireMember, (req, res) => {
 
 // ── HAULER ────────────────────────────────────────────────────────────────
 
-app.get('/hauler', requireHauler, (req, res) => {
+app.get('/hauler', requireHauler, (_req, res) => {
   const requests = db.prepare(
     "SELECT * FROM requests WHERE status NOT IN ('delivered','cancelled') ORDER BY created_at ASC"
   ).all();
-  res.render('hauler', {
-    requests,
-    statusLabels: STATUS_LABELS,
-    character: req.session.character,
-    version
-  });
+  res.render('hauler', { requests });
 });
 
 app.post('/hauler/:id/status', requireHauler, (req, res) => {
