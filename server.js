@@ -1094,4 +1094,13 @@ app.get('/logout', (req, res) => {
 
 app.listen(port, () => {
   console.log(`Serveur démarré sur ${port} - version ${version}`);
+
+  // Polling automatique pour les notifications Discord
+  setInterval(async () => {
+    try {
+      await fetchAllianceContracts();
+    } catch (err) {
+      console.error('[poll] ESI error:', err.message);
+    }
+  }, getCacheDuration());
 });
