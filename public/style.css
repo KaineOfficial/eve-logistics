@@ -1153,6 +1153,57 @@ td.label {
   color: #f87171;
 }
 
+/* Route cards in admin */
+.route-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.route-card.route-inactive {
+  opacity: 0.5;
+}
+
+.route-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #334155;
+}
+
+.route-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-toggle {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  background: #450a0a;
+  color: #f87171;
+}
+
+.btn-toggle.active {
+  background: #14532d;
+  color: #4ade80;
+}
+
+.new-route-details summary {
+  list-style: none;
+}
+
+.new-route-details summary::-webkit-details-marker {
+  display: none;
+}
+
 /* ============================================================
    RESPONSIVE / MOBILE STYLES
    Appended — do not modify above this line

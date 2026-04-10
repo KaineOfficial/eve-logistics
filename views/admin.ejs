@@ -127,6 +127,160 @@
       </form>
     </div>
 
+    <!-- ═══ ROUTES SPÉCIALES ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title">Special Routes</h2>
+
+      <% routes.forEach(route => { %>
+        <div class="route-card <%= route.active ? '' : 'route-inactive' %>">
+          <div class="route-header">
+            <strong><%= route.point_a %> ↔ <%= route.point_b %></strong>
+            <div class="route-actions">
+              <form method="POST" action="/admin/routes/<%= route.id %>/toggle" style="display:inline">
+                <button type="submit" class="btn-toggle <%= route.active ? 'active' : '' %>"><%= route.active ? 'ON' : 'OFF' %></button>
+              </form>
+              <form method="POST" action="/admin/routes/<%= route.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this route?')">
+                <button type="submit" class="btn-remove-tier">X</button>
+              </form>
+            </div>
+          </div>
+          <form method="POST" action="/admin/routes/<%= route.id %>/update">
+            <div class="admin-grid">
+              <div class="form-group">
+                <label>Point A</label>
+                <input type="text" name="point_a" value="<%= route.point_a %>">
+              </div>
+              <div class="form-group">
+                <label>Point B</label>
+                <input type="text" name="point_b" value="<%= route.point_b %>">
+              </div>
+              <div class="form-group">
+                <label>Max Volume (m³)</label>
+                <input type="number" name="max_volume" value="<%= route.max_volume %>">
+              </div>
+              <div class="form-group">
+                <label>Expiration (weeks)</label>
+                <input type="number" name="expiration_weeks" value="<%= route.expiration_weeks %>">
+              </div>
+              <div class="form-group">
+                <label>Days to complete</label>
+                <input type="number" name="days_to_complete" value="<%= route.days_to_complete %>">
+              </div>
+              <div class="form-group">
+                <label>Surcharge (ISK)</label>
+                <input type="number" name="surcharge" value="<%= route.surcharge %>">
+              </div>
+              <div class="form-group" style="grid-column: span 2">
+                <label>Surcharge label</label>
+                <input type="text" name="surcharge_label" value="<%= route.surcharge_label %>" placeholder="e.g. +10M ISK per contract">
+              </div>
+            </div>
+            <h3 class="admin-subtitle">Pricing Tiers</h3>
+            <% route.tiers.forEach(tier => { %>
+              <div class="tier-row">
+                <div class="form-group">
+                  <label>Max Collateral (ISK)</label>
+                  <input type="number" name="tierCollateral" value="<%= tier.maxCollateral %>">
+                </div>
+                <div class="form-group">
+                  <label>Rate (ISK/m³)</label>
+                  <input type="number" name="tierRate" value="<%= tier.ratePerM3 %>">
+                </div>
+                <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+              </div>
+            <% }) %>
+            <div class="route-tiers-<%= route.id %>"></div>
+            <button type="button" class="btn-add" onclick="addRouteTier(<%= route.id %>)">+ Add Tier</button>
+            <div class="form-actions">
+              <button type="submit" class="submit-btn">Save Route</button>
+            </div>
+          </form>
+        </div>
+      <% }) %>
+
+      <!-- New route form -->
+      <details class="new-route-details">
+        <summary class="btn-add" style="margin-top:16px;display:inline-block;cursor:pointer">+ Add New Route</summary>
+        <form method="POST" action="/admin/routes" style="margin-top:12px">
+          <div class="admin-grid">
+            <div class="form-group">
+              <label>Point A</label>
+              <input type="text" name="point_a" placeholder="e.g. Jita" required>
+            </div>
+            <div class="form-group">
+              <label>Point B</label>
+              <input type="text" name="point_b" placeholder="e.g. ZT-L3S" required>
+            </div>
+            <div class="form-group">
+              <label>Max Volume (m³)</label>
+              <input type="number" name="max_volume" value="200000">
+            </div>
+            <div class="form-group">
+              <label>Expiration (weeks)</label>
+              <input type="number" name="expiration_weeks" value="4">
+            </div>
+            <div class="form-group">
+              <label>Days to complete</label>
+              <input type="number" name="days_to_complete" value="7">
+            </div>
+            <div class="form-group">
+              <label>Surcharge (ISK)</label>
+              <input type="number" name="surcharge" value="0">
+            </div>
+            <div class="form-group" style="grid-column: span 2">
+              <label>Surcharge label</label>
+              <input type="text" name="surcharge_label" placeholder="e.g. +10M ISK per contract">
+            </div>
+          </div>
+          <h3 class="admin-subtitle">Pricing Tiers</h3>
+          <div id="new-route-tiers">
+            <div class="tier-row">
+              <div class="form-group">
+                <label>Max Collateral (ISK)</label>
+                <input type="number" name="tierCollateral" value="0">
+              </div>
+              <div class="form-group">
+                <label>Rate (ISK/m³)</label>
+                <input type="number" name="tierRate" value="0">
+              </div>
+              <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+            </div>
+          </div>
+          <button type="button" class="btn-add" onclick="addNewRouteTier()">+ Add Tier</button>
+          <div class="form-actions">
+            <button type="submit" class="submit-btn">Create Route</button>
+          </div>
+        </form>
+      </details>
+    </div>
+
+    <!-- ═══ JUMP CALCULATION ═══ -->
+    <div class="admin-section">
+      <h2 class="admin-section-title">Jump Calculation</h2>
+      <form method="POST" action="/admin/settings">
+        <input type="hidden" name="section" value="jumps">
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" name="jumpEnabled" <%= jumpEnabled ? 'checked' : '' %>>
+            Enable jump calculation in calculator
+          </label>
+        </div>
+        <div class="admin-grid">
+          <div class="form-group">
+            <label>Extra price per m³ per jump (ISK)</label>
+            <input type="number" name="jumpPrice" value="<%= jumpPrice %>" min="0">
+          </div>
+          <div class="form-group">
+            <label>Jump cache duration (hours)</label>
+            <input type="number" name="jumpCacheHours" value="<%= jumpCacheHours %>" min="1" max="168">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">Save Jump Settings</button>
+        </div>
+      </form>
+    </div>
+
     <!-- ═══ STATUS ═══ -->
     <div class="admin-section">
       <h2 class="admin-section-title">System Status</h2>
@@ -186,6 +340,30 @@
   <%- include('partials/footer') %>
 
   <script>
+    function addRouteTier(routeId) {
+      const container = document.querySelector('.route-tiers-' + routeId);
+      const row = document.createElement('div');
+      row.className = 'tier-row';
+      row.innerHTML = `
+        <div class="form-group"><label>Max Collateral (ISK)</label><input type="number" name="tierCollateral" value="0"></div>
+        <div class="form-group"><label>Rate (ISK/m³)</label><input type="number" name="tierRate" value="0"></div>
+        <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function addNewRouteTier() {
+      const container = document.getElementById('new-route-tiers');
+      const row = document.createElement('div');
+      row.className = 'tier-row';
+      row.innerHTML = `
+        <div class="form-group"><label>Max Collateral (ISK)</label><input type="number" name="tierCollateral" value="0"></div>
+        <div class="form-group"><label>Rate (ISK/m³)</label><input type="number" name="tierRate" value="0"></div>
+        <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(row);
+    }
+
     function addTier() {
       const container = document.getElementById('tiers-container');
       const row = document.createElement('div');

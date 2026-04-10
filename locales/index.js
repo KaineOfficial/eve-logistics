@@ -102,6 +102,8 @@ module.exports = {
       errVolume: 'Volume exceeds the 200,000 m³ limit.',
       errCollateral: 'Collateral exceeds the 10 B ISK limit.',
       errNoTier: 'No matching pricing tier found.',
+      labelRoute: 'Route',
+      standardRoute: 'Standard (default)',
     },
     footer: 'App version'
   },
@@ -209,6 +211,8 @@ module.exports = {
       errVolume: 'Le volume dépasse la limite de 200 000 m³.',
       errCollateral: 'Le collateral dépasse la limite de 10 B ISK.',
       errNoTier: 'Aucun palier tarifaire correspondant.',
+      labelRoute: 'Route',
+      standardRoute: 'Standard (par défaut)',
     },
     footer: "Version de l'application"
   },
@@ -316,6 +320,8 @@ module.exports = {
       errVolume: 'El volumen supera el límite de 200 000 m³.',
       errCollateral: 'El colateral supera el límite de 10 B ISK.',
       errNoTier: 'No se encontró ningún nivel de precios.',
+      labelRoute: 'Ruta',
+      standardRoute: 'Estándar (por defecto)',
     },
     footer: 'Versión de la aplicación'
   }

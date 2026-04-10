@@ -45,6 +45,48 @@
       </div>
     </div>
 
+    <!-- Routes spéciales -->
+    <% if (routes.length > 0) { %>
+      <% routes.forEach(route => { %>
+        <div class="standards-card" style="margin-bottom:12px">
+          <div class="standards-header">
+            <span class="standards-title"><%= route.point_a %> ↔ <%= route.point_b %></span>
+          </div>
+          <div class="standards-body">
+            <div class="standards-section">
+              <div class="standards-label"><%= t.freight.standardsVolume %></div>
+              <div class="standards-value"><%= route.max_volume.toLocaleString() %> m³</div>
+            </div>
+            <div class="standards-section">
+              <div class="standards-label"><%= t.freight.standardsCost %></div>
+              <div class="standards-tiers">
+                <% route.tiers.forEach(tier => { %>
+                  <div class="standards-tier">
+                    <span class="tier-limit">&le; <%= (tier.maxCollateral / 1e9).toLocaleString() %> B ISK</span>
+                    <span class="tier-rate"><%= tier.ratePerM3.toLocaleString() %> ISK/m³</span>
+                  </div>
+                <% }) %>
+                <% if (route.surcharge > 0) { %>
+                  <div class="standards-tier">
+                    <span class="tier-limit"><%= route.surcharge_label || 'Surcharge' %></span>
+                    <span class="tier-rate">+<%= route.surcharge.toLocaleString() %> ISK</span>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+            <div class="standards-section">
+              <div class="standards-label"><%= t.freight.standardsExpiry %></div>
+              <div class="standards-value"><%= route.expiration_weeks %> <%= t.freight.standardsWeeks %></div>
+            </div>
+            <div class="standards-section">
+              <div class="standards-label"><%= t.freight.standardsDays %></div>
+              <div class="standards-value"><%= route.days_to_complete %> <%= t.freight.standardsDaysUnit %></div>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    <% } %>
+
     <p class="hauler-note"><%= t.hauler.inGameNote %></p>
 
     <!-- Filtres par statut -->

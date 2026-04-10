@@ -32,6 +32,29 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS routes (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    point_a          TEXT NOT NULL,
+    point_b          TEXT NOT NULL,
+    max_volume       INTEGER DEFAULT 200000,
+    expiration_weeks INTEGER DEFAULT 4,
+    days_to_complete INTEGER DEFAULT 7,
+    tiers            TEXT DEFAULT '[]',
+    surcharge        REAL DEFAULT 0,
+    surcharge_label  TEXT DEFAULT '',
+    active           INTEGER DEFAULT 1,
+    created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS jump_cache (
+    origin_system      INTEGER NOT NULL,
+    destination_system INTEGER NOT NULL,
+    jumps              INTEGER NOT NULL,
+    cached_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (origin_system, destination_system)
+  );
+
   CREATE TABLE IF NOT EXISTS admin_logs (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     char_id    INTEGER NOT NULL,
@@ -72,6 +95,24 @@ const DEFAULT_SETTINGS = {
 const seedStmt = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
   seedStmt.run(key, value);
+}
+
+// Seed settings jumps
+seedStmt.run('jump_calculation', 'false');
+seedStmt.run('jump_price_per_m3', '0');
+seedStmt.run('jump_cache_hours', '24');
+
+// Seed route Jita <-> ZT-L3S si aucune route n'existe
+const routeCount = db.prepare('SELECT COUNT(*) as c FROM routes').get().c;
+if (routeCount === 0) {
+  db.prepare(`INSERT INTO routes (point_a, point_b, max_volume, expiration_weeks, days_to_complete, tiers, surcharge, surcharge_label, active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'Jita', 'ZT-L3S',
+    200000, 4, 7,
+    JSON.stringify([{ maxCollateral: 700000000, ratePerM3: 600 }]),
+    10000000, '+10M ISK per contract',
+    1
+  );
 }
 
 // Seed le service token depuis .env si la table est vide

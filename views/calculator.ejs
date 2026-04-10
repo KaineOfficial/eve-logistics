@@ -8,16 +8,27 @@
 <body>
   <%- include('partials/navbar') %>
 
-  <div class="container" style="max-width:560px">
+  <div class="container" style="max-width:620px">
     <div class="page-header" style="margin-bottom:8px">
       <h1><%= t.calc.title %></h1>
     </div>
     <p style="margin-top:0;margin-bottom:24px;color:#64748b;font-size:0.9rem"><%= t.calc.subtitle %></p>
 
     <div class="calc-form">
+      <!-- Route selector -->
+      <div class="form-group">
+        <label for="route-select"><%= t.calc.labelRoute || 'Route' %></label>
+        <select id="route-select" class="search-input" style="cursor:pointer">
+          <option value="standard"><%= t.calc.standardRoute || 'Standard (default)' %></option>
+          <% routes.forEach(route => { %>
+            <option value="<%= route.id %>"><%= route.point_a %> ↔ <%= route.point_b %></option>
+          <% }) %>
+        </select>
+      </div>
+
       <div class="form-group">
         <label for="volume"><%= t.calc.labelVolume %></label>
-        <input type="number" id="volume" placeholder="ex: 50000" min="0" max="200000">
+        <input type="number" id="volume" placeholder="ex: 50000" min="0">
         <span class="field-hint" id="volume-hint"></span>
       </div>
 
@@ -32,6 +43,16 @@
           <span class="result-label"><%= t.calc.rate %></span>
           <span class="result-value" id="result-rate">—</span>
         </div>
+        <div class="result-row" id="surcharge-row" style="display:none">
+          <span class="result-label" id="surcharge-label">Surcharge</span>
+          <span class="result-value" id="result-surcharge">—</span>
+        </div>
+        <% if (jumpEnabled) { %>
+        <div class="result-row" id="jumps-row" style="display:none">
+          <span class="result-label">Jumps</span>
+          <span class="result-value" id="result-jumps">—</span>
+        </div>
+        <% } %>
         <div class="result-row result-total">
           <span class="result-label"><%= t.calc.reward %></span>
           <span class="result-value result-isk" id="result-reward">—</span>
@@ -40,30 +61,13 @@
       </div>
     </div>
 
-    <!-- Tableau des paliers -->
-    <div style="margin-top:32px">
+    <!-- Current route info -->
+    <div style="margin-top:32px" id="pricing-info">
       <div class="standards-header" style="border-radius:8px 8px 0 0;border:1px solid #334155;border-bottom:none">
-        <span class="standards-title"><%= t.calc.tiersTitle %></span>
+        <span class="standards-title" id="pricing-title"><%= t.calc.tiersTitle %></span>
       </div>
-      <div class="pricing-table" style="border-radius:0 0 8px 8px;border-top:none">
-        <div class="pricing-row">
-          <span><%= t.calc.tierCollateral %></span>
-          <span><%= t.calc.tierRate %></span>
-        </div>
-        <% standards.tiers.forEach(tier => { %>
-        <div class="pricing-row" style="border-top:1px solid #1e293b;padding-top:6px;margin-top:4px">
-          <span>&le; <%= (tier.maxCollateral / 1e9).toLocaleString() %> B ISK</span>
-          <span class="pricing-rate"><%= tier.ratePerM3.toLocaleString() %> ISK/m³</span>
-        </div>
-        <% }) %>
-        <div class="pricing-row pricing-limit-row">
-          <span><%= t.calc.maxVolume %></span>
-          <span><%= standards.maxVolume.toLocaleString() %> m³</span>
-        </div>
-        <div class="pricing-row pricing-limit-row">
-          <span><%= t.calc.maxCollateral %></span>
-          <span><%= (standards.maxCollateral / 1e9).toLocaleString() %> B ISK</span>
-        </div>
+      <div class="pricing-table" style="border-radius:0 0 8px 8px;border-top:none" id="pricing-table">
+        <!-- Filled by JS -->
       </div>
     </div>
   </div>
@@ -71,83 +75,145 @@
   <%- include('partials/footer') %>
 
   <script>
-    const TIERS = <%- JSON.stringify(standards.tiers) %>;
-    const MAX_VOLUME     = <%= standards.maxVolume %>;
-    const MAX_COLLATERAL = <%= standards.maxCollateral %>;
+    const STANDARD = {
+      tiers: <%- JSON.stringify(standards.tiers) %>,
+      maxVolume: <%= standards.maxVolume %>,
+      maxCollateral: <%= standards.maxCollateral %>,
+      surcharge: 0,
+      surchargeLabel: '',
+    };
 
-    const volInput  = document.getElementById('volume');
-    const colInput  = document.getElementById('collateral');
-    const resRate   = document.getElementById('result-rate');
-    const resReward = document.getElementById('result-reward');
-    const resError  = document.getElementById('result-error');
-    const volHint   = document.getElementById('volume-hint');
-    const colHint   = document.getElementById('collateral-hint');
+    const ROUTES = {
+      <% routes.forEach(route => { %>
+      '<%= route.id %>': {
+        name: '<%- route.point_a %> \u2194 <%- route.point_b %>',
+        tiers: <%- JSON.stringify(route.tiers) %>,
+        maxVolume: <%= route.max_volume %>,
+        surcharge: <%= route.surcharge %>,
+        surchargeLabel: '<%- route.surcharge_label %>',
+      },
+      <% }) %>
+    };
+
+    const volInput    = document.getElementById('volume');
+    const colInput    = document.getElementById('collateral');
+    const routeSelect = document.getElementById('route-select');
+    const resRate     = document.getElementById('result-rate');
+    const resReward   = document.getElementById('result-reward');
+    const resError    = document.getElementById('result-error');
+    const volHint     = document.getElementById('volume-hint');
+    const colHint     = document.getElementById('collateral-hint');
 
     const t = {
       errVolume:     "<%= t.calc.errVolume %>",
       errCollateral: "<%= t.calc.errCollateral %>",
       errNoTier:     "<%= t.calc.errNoTier %>",
-      unitISK:       "ISK",
-      unitM3:        "m³",
     };
 
-    function fmt(n) {
-      return Math.round(n).toLocaleString();
+    function fmt(n) { return Math.round(n).toLocaleString(); }
+
+    function getConfig() {
+      const val = routeSelect.value;
+      return val === 'standard' ? STANDARD : (ROUTES[val] || STANDARD);
+    }
+
+    function renderPricing() {
+      const cfg = getConfig();
+      const table = document.getElementById('pricing-table');
+      const title = document.getElementById('pricing-title');
+      title.textContent = routeSelect.value === 'standard'
+        ? '<%= t.calc.tiersTitle %>'
+        : cfg.name;
+
+      let html = '<div class="pricing-row"><span>Collateral</span><span>Rate/m\u00B3</span></div>';
+      cfg.tiers.forEach(tier => {
+        html += '<div class="pricing-row" style="border-top:1px solid #1e293b;padding-top:6px;margin-top:4px">';
+        html += '<span>&le; ' + fmt(tier.maxCollateral / 1e9) + ' B ISK</span>';
+        html += '<span class="pricing-rate">' + fmt(tier.ratePerM3) + ' ISK/m\u00B3</span>';
+        html += '</div>';
+      });
+      if (cfg.surcharge > 0) {
+        html += '<div class="pricing-row pricing-limit-row">';
+        html += '<span>' + (cfg.surchargeLabel || 'Surcharge') + '</span>';
+        html += '<span class="pricing-rate">+' + fmt(cfg.surcharge) + ' ISK</span>';
+        html += '</div>';
+      }
+      html += '<div class="pricing-row pricing-limit-row"><span>Max volume</span><span>' + fmt(cfg.maxVolume) + ' m\u00B3</span></div>';
+      table.innerHTML = html;
     }
 
     function calculate() {
+      const cfg = getConfig();
       const vol = parseFloat(volInput.value);
       const col = parseFloat(colInput.value);
 
       resError.style.display = 'none';
-      resRate.textContent   = '—';
-      resReward.textContent = '—';
+      resRate.textContent   = '\u2014';
+      resReward.textContent = '\u2014';
       volHint.textContent   = '';
       colHint.textContent   = '';
-      volHint.className     = 'field-hint';
-      colHint.className     = 'field-hint';
+      volHint.className = 'field-hint';
+      colHint.className = 'field-hint';
+
+      const surchargeRow = document.getElementById('surcharge-row');
+      if (surchargeRow) surchargeRow.style.display = 'none';
 
       if (!volInput.value && !colInput.value) return;
 
-      // Validate volume
       if (isNaN(vol) || vol <= 0) return;
-      if (vol > MAX_VOLUME) {
-        volHint.textContent = t.errVolume;
-        volHint.className   = 'field-hint hint-error';
-        resError.textContent = t.errVolume;
+      if (vol > cfg.maxVolume) {
+        const msg = t.errVolume.replace('200,000', fmt(cfg.maxVolume)).replace('200 000', fmt(cfg.maxVolume));
+        volHint.textContent = msg;
+        volHint.className = 'field-hint hint-error';
+        resError.textContent = msg;
         resError.style.display = 'block';
         return;
       }
-      volHint.textContent = fmt(vol) + ' ' + t.unitM3;
-      volHint.className   = 'field-hint hint-ok';
+      volHint.textContent = fmt(vol) + ' m\u00B3';
+      volHint.className = 'field-hint hint-ok';
 
       if (!colInput.value || isNaN(col) || col < 0) return;
 
-      if (col > MAX_COLLATERAL) {
-        colHint.textContent = t.errCollateral;
-        colHint.className   = 'field-hint hint-error';
-        resError.textContent = t.errCollateral;
+      // Find max collateral from tiers
+      const maxCol = cfg.tiers.length > 0 ? cfg.tiers[cfg.tiers.length - 1].maxCollateral : 0;
+      if (maxCol > 0 && col > maxCol) {
+        const msg = t.errCollateral;
+        colHint.textContent = msg;
+        colHint.className = 'field-hint hint-error';
+        resError.textContent = msg;
         resError.style.display = 'block';
         return;
       }
-      colHint.textContent = fmt(col) + ' ' + t.unitISK;
-      colHint.className   = 'field-hint hint-ok';
+      colHint.textContent = fmt(col) + ' ISK';
+      colHint.className = 'field-hint hint-ok';
 
-      // Find tier
-      const tier = TIERS.find(t => col <= t.maxCollateral);
+      const tier = cfg.tiers.find(t => col <= t.maxCollateral);
       if (!tier) {
         resError.textContent = t.errNoTier;
         resError.style.display = 'block';
         return;
       }
 
-      const reward = vol * tier.ratePerM3;
-      resRate.textContent   = fmt(tier.ratePerM3) + ' ISK/m³';
+      let reward = vol * tier.ratePerM3;
+      resRate.textContent = fmt(tier.ratePerM3) + ' ISK/m\u00B3';
+
+      // Surcharge
+      if (cfg.surcharge > 0 && surchargeRow) {
+        surchargeRow.style.display = 'flex';
+        document.getElementById('surcharge-label').textContent = cfg.surchargeLabel || 'Surcharge';
+        document.getElementById('result-surcharge').textContent = '+' + fmt(cfg.surcharge) + ' ISK';
+        reward += cfg.surcharge;
+      }
+
       resReward.textContent = fmt(reward) + ' ISK';
     }
 
+    routeSelect.addEventListener('change', () => { renderPricing(); calculate(); });
     volInput.addEventListener('input', calculate);
     colInput.addEventListener('input', calculate);
+
+    // Init
+    renderPricing();
   </script>
 </body>
 </html>

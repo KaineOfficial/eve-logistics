@@ -91,6 +91,59 @@ function getCacheDuration() {
   return (parseInt(getSetting('cache_duration')) || 5) * 60 * 1000;
 }
 
+// ── Routes spéciales ─────────────────────────────────────────────────────
+function getRoutes(activeOnly = true) {
+  const rows = activeOnly
+    ? db.prepare('SELECT * FROM routes WHERE active = 1 ORDER BY point_a, point_b').all()
+    : db.prepare('SELECT * FROM routes ORDER BY active DESC, point_a, point_b').all();
+  return rows.map(r => ({ ...r, tiers: JSON.parse(r.tiers || '[]') }));
+}
+
+// ── Jump calculation (ESI + cache DB) ────────────────────────────────────
+async function getJumpCount(systemA, systemB) {
+  if (systemA === systemB) return 0;
+
+  // Check cache
+  const cacheHours = parseInt(getSetting('jump_cache_hours')) || 24;
+  const cached = db.prepare(
+    'SELECT jumps, cached_at FROM jump_cache WHERE origin_system = ? AND destination_system = ?'
+  ).get(systemA, systemB);
+
+  if (cached) {
+    const age = (Date.now() - new Date(cached.cached_at).getTime()) / 3600000;
+    if (age < cacheHours) return cached.jumps;
+  }
+
+  // Call ESI
+  const res = await axios.get(`https://esi.evetech.net/v1/route/${systemA}/${systemB}/`);
+  const jumps = res.data.length - 1; // le tableau inclut origin + destination
+
+  // Save cache
+  db.prepare(
+    'INSERT INTO jump_cache (origin_system, destination_system, jumps, cached_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT(origin_system, destination_system) DO UPDATE SET jumps = excluded.jumps, cached_at = CURRENT_TIMESTAMP'
+  ).run(systemA, systemB, jumps);
+
+  return jumps;
+}
+
+async function getSystemIdFromStation(stationName) {
+  const token = await getServiceToken();
+  const b64     = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const payload = JSON.parse(Buffer.from(b64, 'base64').toString());
+  const charId  = payload.sub.split(':')[2];
+
+  // Search station
+  const searchRes = await axios.get(
+    `https://esi.evetech.net/v3/characters/${charId}/search/`,
+    {
+      params: { categories: 'solar_system', search: stationName, language: 'en', strict: true },
+      headers: { Authorization: `Bearer ${token}` }
+    }
+  );
+  const ids = searchRes.data.solar_system || [];
+  return ids.length > 0 ? ids[0] : null;
+}
+
 // ── Token du compte service (cache mémoire + rotation en DB) ─────────────
 let _serviceToken = null;
 let _serviceTokenExpiry = 0;
@@ -457,10 +510,10 @@ app.get('/callback', async (req, res) => {
 app.get('/logistics', requireMember, async (_req, res) => {
   try {
     const contracts = await fetchAllianceContracts();
-    res.render('logistics', { contracts, standards: getFreightStandards() });
+    res.render('logistics', { contracts, standards: getFreightStandards(), routes: getRoutes(true) });
   } catch (err) {
     console.error('[logistics] ESI error:', err.message);
-    res.render('logistics', { contracts: [], standards: getFreightStandards() });
+    res.render('logistics', { contracts: [], standards: getFreightStandards(), routes: getRoutes(true) });
   }
 });
 
@@ -585,7 +638,28 @@ app.get('/api/stations', async (req, res) => {
 
 // CALCULATEUR
 app.get('/calculator', (req, res) => {
-  res.render('calculator', { standards: getFreightStandards() });
+  res.render('calculator', {
+    standards: getFreightStandards(),
+    routes: getRoutes(true),
+    jumpEnabled: getSetting('jump_calculation') === 'true',
+  });
+});
+
+// API: calcul de jumps
+app.get('/api/jumps', async (req, res) => {
+  if (getSetting('jump_calculation') !== 'true') return res.json({ error: 'disabled' });
+  const { from, to } = req.query;
+  if (!from || !to) return res.json({ error: 'missing params' });
+  try {
+    const sysA = await getSystemIdFromStation(from);
+    const sysB = await getSystemIdFromStation(to);
+    if (!sysA || !sysB) return res.json({ error: 'system not found' });
+    const jumps = await getJumpCount(sysA, sysB);
+    return res.json({ jumps, from, to });
+  } catch (err) {
+    console.error('[jumps] error:', err.message);
+    return res.json({ error: err.message });
+  }
 });
 
 // ── ADMIN ────────────────────────────────────────────────────────────────
@@ -601,6 +675,10 @@ app.get('/admin', requireAdmin, (req, res) => {
     stations:       getCommonStations(),
     cacheDuration:  parseInt(getSetting('cache_duration')) || 5,
     adminIds:       getAdminIds(),
+    routes:         getRoutes(false),
+    jumpEnabled:    getSetting('jump_calculation') === 'true',
+    jumpPrice:      getSetting('jump_price_per_m3') || '0',
+    jumpCacheHours: getSetting('jump_cache_hours') || '24',
     logs,
     cacheStatus: {
       active: !!_contractsCache,
@@ -669,6 +747,80 @@ app.post('/admin/settings', requireAdmin, (req, res) => {
     logAdmin(req, 'update_admins', ids.join(', '));
   }
 
+  if (section === 'jumps') {
+    setSetting('jump_calculation', req.body.jumpEnabled === 'on' ? 'true' : 'false');
+    setSetting('jump_price_per_m3', req.body.jumpPrice || '0');
+    setSetting('jump_cache_hours', req.body.jumpCacheHours || '24');
+    logAdmin(req, 'update_jumps', `enabled=${req.body.jumpEnabled === 'on'}, price=${req.body.jumpPrice}/m³/jump`);
+  }
+
+  res.redirect('/admin');
+});
+
+// ── Routes spéciales CRUD ────────────────────────────────────────────────
+
+app.post('/admin/routes', requireAdmin, (req, res) => {
+  const tiers = [];
+  const tierCollaterals = [].concat(req.body.tierCollateral || []);
+  const tierRates       = [].concat(req.body.tierRate || []);
+  for (let i = 0; i < tierCollaterals.length; i++) {
+    const mc = parseFloat(tierCollaterals[i]);
+    const rp = parseFloat(tierRates[i]);
+    if (mc > 0 && rp > 0) tiers.push({ maxCollateral: mc, ratePerM3: rp });
+  }
+  tiers.sort((a, b) => a.maxCollateral - b.maxCollateral);
+
+  db.prepare(`INSERT INTO routes (point_a, point_b, max_volume, expiration_weeks, days_to_complete, tiers, surcharge, surcharge_label)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    (req.body.point_a || '').trim(),
+    (req.body.point_b || '').trim(),
+    parseInt(req.body.max_volume) || 200000,
+    parseInt(req.body.expiration_weeks) || 4,
+    parseInt(req.body.days_to_complete) || 7,
+    JSON.stringify(tiers),
+    parseFloat(req.body.surcharge) || 0,
+    (req.body.surcharge_label || '').trim()
+  );
+  logAdmin(req, 'add_route', `${req.body.point_a} ↔ ${req.body.point_b}`);
+  res.redirect('/admin');
+});
+
+app.post('/admin/routes/:id/update', requireAdmin, (req, res) => {
+  const tiers = [];
+  const tierCollaterals = [].concat(req.body.tierCollateral || []);
+  const tierRates       = [].concat(req.body.tierRate || []);
+  for (let i = 0; i < tierCollaterals.length; i++) {
+    const mc = parseFloat(tierCollaterals[i]);
+    const rp = parseFloat(tierRates[i]);
+    if (mc > 0 && rp > 0) tiers.push({ maxCollateral: mc, ratePerM3: rp });
+  }
+  tiers.sort((a, b) => a.maxCollateral - b.maxCollateral);
+
+  db.prepare(`UPDATE routes SET point_a = ?, point_b = ?, max_volume = ?, expiration_weeks = ?, days_to_complete = ?,
+    tiers = ?, surcharge = ?, surcharge_label = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(
+    (req.body.point_a || '').trim(),
+    (req.body.point_b || '').trim(),
+    parseInt(req.body.max_volume) || 200000,
+    parseInt(req.body.expiration_weeks) || 4,
+    parseInt(req.body.days_to_complete) || 7,
+    JSON.stringify(tiers),
+    parseFloat(req.body.surcharge) || 0,
+    (req.body.surcharge_label || '').trim(),
+    req.params.id
+  );
+  logAdmin(req, 'update_route', `#${req.params.id} ${req.body.point_a} ↔ ${req.body.point_b}`);
+  res.redirect('/admin');
+});
+
+app.post('/admin/routes/:id/toggle', requireAdmin, (req, res) => {
+  db.prepare('UPDATE routes SET active = NOT active, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+  logAdmin(req, 'toggle_route', `#${req.params.id}`);
+  res.redirect('/admin');
+});
+
+app.post('/admin/routes/:id/delete', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM routes WHERE id = ?').run(req.params.id);
+  logAdmin(req, 'delete_route', `#${req.params.id}`);
   res.redirect('/admin');
 });
 
