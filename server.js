@@ -175,9 +175,19 @@ app.get('/callback', async (req, res) => {
       const verifyRes = await axios.get('https://login.eveonline.com/oauth/verify', {
         headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` }
       });
+
+      // Sauvegarder le nouveau token en DB et vider le cache mémoire
+      const newRefreshToken = tokenResponse.data.refresh_token;
+      db.prepare(`
+        INSERT INTO service_token (id, refresh_token) VALUES (1, ?)
+        ON CONFLICT(id) DO UPDATE SET refresh_token = excluded.refresh_token, updated_at = CURRENT_TIMESTAMP
+      `).run(newRefreshToken);
+      _serviceToken       = null;
+      _serviceTokenExpiry = 0;
+
       return res.render('service-setup', {
         characterName: verifyRes.data.CharacterName,
-        refreshToken:  tokenResponse.data.refresh_token,
+        refreshToken:  newRefreshToken,
         character:     null,
         version
       });
