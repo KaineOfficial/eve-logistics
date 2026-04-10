@@ -87,6 +87,8 @@
       <% routes.forEach(route => { %>
       '<%= route.id %>': {
         name: '<%- route.point_a %> \u2194 <%- route.point_b %>',
+        pointA: '<%- route.point_a %>',
+        pointB: '<%- route.point_b %>',
         tiers: <%- JSON.stringify(route.tiers) %>,
         maxVolume: <%= route.max_volume %>,
         surcharge: <%= route.surcharge %>,
@@ -94,6 +96,11 @@
       },
       <% }) %>
     };
+
+    const JUMP_ENABLED = <%= jumpEnabled ? 'true' : 'false' %>;
+    const JUMP_PRICE_PER_M3 = <%= jumpPricePerM3 %>;
+    let currentJumps = null;
+    let jumpCache = {};
 
     const volInput    = document.getElementById('volume');
     const colInput    = document.getElementById('collateral');
@@ -205,10 +212,56 @@
         reward += cfg.surcharge;
       }
 
+      // Jump cost
+      const jumpsRow = document.getElementById('jumps-row');
+      if (JUMP_ENABLED && currentJumps !== null && currentJumps > 0 && JUMP_PRICE_PER_M3 > 0) {
+        const jumpCost = vol * JUMP_PRICE_PER_M3 * currentJumps;
+        if (jumpsRow) {
+          jumpsRow.style.display = 'flex';
+          document.getElementById('result-jumps').textContent = currentJumps + ' jumps → +' + fmt(jumpCost) + ' ISK';
+        }
+        reward += jumpCost;
+      } else if (jumpsRow) {
+        jumpsRow.style.display = 'none';
+      }
+
       resReward.textContent = fmt(reward) + ' ISK';
     }
 
-    routeSelect.addEventListener('change', () => { renderPricing(); calculate(); });
+    async function fetchJumps(routeId) {
+      const cfg = ROUTES[routeId];
+      if (!cfg || !JUMP_ENABLED) { currentJumps = null; return; }
+
+      const cacheKey = cfg.pointA + '|' + cfg.pointB;
+      if (jumpCache[cacheKey] !== undefined) {
+        currentJumps = jumpCache[cacheKey];
+        calculate();
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/jumps?from=' + encodeURIComponent(cfg.pointA) + '&to=' + encodeURIComponent(cfg.pointB));
+        const data = await res.json();
+        if (data.jumps !== undefined) {
+          currentJumps = data.jumps;
+          jumpCache[cacheKey] = data.jumps;
+        } else {
+          currentJumps = null;
+        }
+      } catch {
+        currentJumps = null;
+      }
+      calculate();
+    }
+
+    routeSelect.addEventListener('change', () => {
+      renderPricing();
+      currentJumps = null;
+      if (routeSelect.value !== 'standard') {
+        fetchJumps(routeSelect.value);
+      }
+      calculate();
+    });
     volInput.addEventListener('input', calculate);
     colInput.addEventListener('input', calculate);
 

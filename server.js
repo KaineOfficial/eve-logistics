@@ -642,6 +642,7 @@ app.get('/calculator', (req, res) => {
     standards: getFreightStandards(),
     routes: getRoutes(true),
     jumpEnabled: getSetting('jump_calculation') === 'true',
+    jumpPricePerM3: parseFloat(getSetting('jump_price_per_m3')) || 0,
   });
 });
 
