@@ -10,40 +10,58 @@ const { version } = require('./package.json');
 const db = require('./db');
 const locales = require('./locales');
 
-// ── License verification ─────────────────────────────────────────────────
-function verifyLicense() {
+// ── License verification (remote server + local cache) ───────────────────
+const LICENSE_SERVER = process.env.LICENSE_SERVER || 'https://license.tslc.ovh';
+const LICENSE_CACHE_FILE = path.join(__dirname, '.license-cache.json');
+const fs = require('fs');
+
+async function verifyLicense() {
   const key = process.env.LICENSE_KEY;
+  const alliId = parseInt(process.env.ALLIANCE_ID);
   if (!key) {
     console.error('[LICENSE] No LICENSE_KEY found in .env');
     process.exit(1);
   }
+
   try {
-    const [data, sig] = key.replace('TSLC-', '').split('.');
-    // Signature verification (if LICENSE_SECRET provided)
-    if (process.env.LICENSE_SECRET) {
-      const expected = crypto.createHmac('sha256', process.env.LICENSE_SECRET).update(data).digest('base64url');
-      if (sig !== expected) {
-        console.error('[LICENSE] Invalid signature');
-        process.exit(1);
-      }
-    }
-    const payload = JSON.parse(Buffer.from(data, 'base64url').toString());
-    if (payload.exp && Date.now() > payload.exp) {
-      console.error('[LICENSE] License expired');
+    // Try remote verification
+    const res = await axios.post(`${LICENSE_SERVER}/verify`, { key, allianceId: alliId }, { timeout: 5000 });
+    const data = res.data;
+
+    // Save to cache
+    fs.writeFileSync(LICENSE_CACHE_FILE, JSON.stringify({ ...data, cachedAt: Date.now() }));
+
+    if (!data.valid) {
+      console.error(`[LICENSE] Rejected: ${data.error}`);
       process.exit(1);
     }
-    const allianceId = parseInt(process.env.ALLIANCE_ID);
-    if (payload.allianceId !== allianceId) {
-      console.error('[LICENSE] License not valid for this alliance');
-      process.exit(1);
-    }
-    console.log(`[LICENSE] Valid — Alliance ${payload.allianceId}, expires: ${payload.exp ? new Date(payload.exp).toISOString() : 'never'}`);
+    console.log(`[LICENSE] Valid — Client: ${data.client}, Type: ${data.type}, Expires: ${data.expires || 'never'}`);
   } catch (err) {
-    console.error('[LICENSE] Invalid license key:', err.message);
-    process.exit(1);
+    // Server unreachable — check local cache (24h grace period)
+    console.warn(`[LICENSE] Server unreachable: ${err.message}. Checking cache...`);
+    try {
+      const cache = JSON.parse(fs.readFileSync(LICENSE_CACHE_FILE, 'utf8'));
+      const age = (Date.now() - cache.cachedAt) / 3600000;
+      if (cache.valid && age < 24) {
+        console.log(`[LICENSE] Using cached validation (${Math.round(age)}h old)`);
+        return;
+      }
+      console.error('[LICENSE] Cache expired or invalid');
+      process.exit(1);
+    } catch {
+      console.error('[LICENSE] No cache available and server unreachable');
+      process.exit(1);
+    }
   }
 }
-verifyLicense();
+
+// Verify license before starting the app
+verifyLicense().then(() => {
+  startApp();
+}).catch(err => {
+  console.error('[LICENSE] Fatal:', err.message);
+  process.exit(1);
+});
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -1170,15 +1188,17 @@ app.get('/logout', (req, res) => {
   res.redirect('/');
 });
 
-app.listen(port, () => {
-  console.log(`Serveur démarré sur ${port} - version ${version}`);
+function startApp() {
+  app.listen(port, () => {
+    console.log(`Server started on ${port} - version ${version}`);
 
-  // Polling automatique pour les notifications Discord
-  setInterval(async () => {
-    try {
-      await fetchAllianceContracts();
-    } catch (err) {
-      console.error('[poll] ESI error:', err.message);
-    }
-  }, getCacheDuration());
-});
+    // Polling automatique pour les notifications Discord
+    setInterval(async () => {
+      try {
+        await fetchAllianceContracts();
+      } catch (err) {
+        console.error('[poll] ESI error:', err.message);
+      }
+    }, getCacheDuration());
+  });
+}
