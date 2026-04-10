@@ -700,3 +700,86 @@ td.label {
   color: #fcd34d;
   font-weight: bold;
 }
+
+/* Calculator form */
+.calc-form {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.field-hint.hint-ok {
+  color: #4ade80;
+  font-weight: 500;
+}
+
+.field-hint.hint-error {
+  color: #f87171;
+  font-weight: 500;
+}
+
+/* Calculator result */
+.calc-result {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 0.95rem;
+}
+
+.result-row.result-total {
+  border-top: 1px solid #334155;
+  padding-top: 12px;
+  margin-top: 8px;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.result-label {
+  color: #94a3b8;
+}
+
+.result-value {
+  color: #e2e8f0;
+}
+
+.result-value.result-isk {
+  color: #fcd34d;
+  font-weight: bold;
+}
+
+.result-error {
+  background: #450a0a;
+  border: 1px solid #7f1d1d;
+  color: #fca5a5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-top: 12px;
+}
+
+/* Nav button for calculator */
+.nav-btn.calc {
+  background: #06b6d4;
+}
+
+.nav-btn.calc:hover {
+  background: #0891b2;
+}
