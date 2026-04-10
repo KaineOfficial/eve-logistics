@@ -31,6 +31,15 @@ db.exec(`
     value      TEXT NOT NULL,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS admin_logs (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    char_id    INTEGER NOT NULL,
+    char_name  TEXT NOT NULL,
+    action     TEXT NOT NULL,
+    details    TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // Seed les settings par défaut

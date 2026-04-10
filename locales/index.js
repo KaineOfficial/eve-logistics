@@ -3,6 +3,7 @@ module.exports = {
     nav: {
       home: 'Home', logistics: 'Logistics',
       calculator: 'Calculator', myContracts: 'My Contracts',
+      leaderboard: 'Leaderboard',
       login: 'Login', logout: 'Logout'
     },
     index: {
@@ -14,10 +15,27 @@ module.exports = {
       title: 'Logistics',
       filterAll: 'All',
       colTimeLeft: 'Time left',
+      searchPlaceholder: 'Search by name, station, hauler...',
     },
     myContracts: {
       title: 'My Contracts',
       noContracts: 'You have no contracts yet.',
+    },
+    leaderboard: {
+      title: 'Leaderboard',
+      totalContracts: 'Total contracts',
+      delivered: 'Delivered',
+      totalVolume: 'Volume hauled (m³)',
+      totalReward: 'ISK earned',
+      noHaulers: 'No deliveries yet.',
+      colHauler: 'Hauler',
+      colDelivered: 'Delivered',
+      colVolume: 'Volume',
+      colReward: 'ISK earned',
+      topIssuers: 'Top Issuers',
+      noIssuers: 'No issuers yet.',
+      colIssuer: 'Issuer',
+      colContracts: 'Contracts',
     },
     dashboard: {
       title: 'Dashboard',
@@ -92,6 +110,7 @@ module.exports = {
     nav: {
       home: 'Accueil', logistics: 'Logistique',
       calculator: 'Calculateur', myContracts: 'Mes contrats',
+      leaderboard: 'Classement',
       login: 'Se connecter', logout: 'Déconnexion'
     },
     index: {
@@ -103,10 +122,27 @@ module.exports = {
       title: 'Logistique',
       filterAll: 'Tous',
       colTimeLeft: 'Temps restant',
+      searchPlaceholder: 'Rechercher par nom, station, hauler...',
     },
     myContracts: {
       title: 'Mes contrats',
       noContracts: "Vous n'avez aucun contrat pour le moment.",
+    },
+    leaderboard: {
+      title: 'Classement',
+      totalContracts: 'Total contrats',
+      delivered: 'Livrés',
+      totalVolume: 'Volume transporté (m³)',
+      totalReward: 'ISK gagnés',
+      noHaulers: 'Aucune livraison pour le moment.',
+      colHauler: 'Hauler',
+      colDelivered: 'Livrés',
+      colVolume: 'Volume',
+      colReward: 'ISK gagnés',
+      topIssuers: 'Top émetteurs',
+      noIssuers: 'Aucun émetteur pour le moment.',
+      colIssuer: 'Émetteur',
+      colContracts: 'Contrats',
     },
     dashboard: {
       title: 'Dashboard',
@@ -181,6 +217,7 @@ module.exports = {
     nav: {
       home: 'Inicio', logistics: 'Logística',
       calculator: 'Calculadora', myContracts: 'Mis contratos',
+      leaderboard: 'Clasificación',
       login: 'Iniciar sesión', logout: 'Cerrar sesión'
     },
     index: {
@@ -192,10 +229,27 @@ module.exports = {
       title: 'Logística',
       filterAll: 'Todos',
       colTimeLeft: 'Tiempo restante',
+      searchPlaceholder: 'Buscar por nombre, estación, transportista...',
     },
     myContracts: {
       title: 'Mis contratos',
       noContracts: 'No tienes contratos por el momento.',
+    },
+    leaderboard: {
+      title: 'Clasificación',
+      totalContracts: 'Total contratos',
+      delivered: 'Entregados',
+      totalVolume: 'Volumen transportado (m³)',
+      totalReward: 'ISK ganados',
+      noHaulers: 'Sin entregas por el momento.',
+      colHauler: 'Transportista',
+      colDelivered: 'Entregados',
+      colVolume: 'Volumen',
+      colReward: 'ISK ganados',
+      topIssuers: 'Top emisores',
+      noIssuers: 'Sin emisores por el momento.',
+      colIssuer: 'Emisor',
+      colContracts: 'Contratos',
     },
     dashboard: {
       title: 'Panel de control',

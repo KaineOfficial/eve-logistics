@@ -1009,3 +1009,429 @@ td.label {
   color: #f59e0b;
   margin-top: 4px;
 }
+
+/* Search bar */
+.search-bar {
+  margin-bottom: 12px;
+}
+
+.search-input {
+  width: 100%;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  border-color: #3b82f6;
+}
+
+.search-input::placeholder {
+  color: #64748b;
+}
+
+/* Sortable table headers */
+.sortable th[data-sort] {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.sortable th[data-sort]:hover {
+  color: #e2e8f0;
+}
+
+.sortable th[data-sort]::after {
+  content: ' \u2195';
+  font-size: 0.7rem;
+  color: #475569;
+}
+
+.sortable th[data-dir="asc"]::after {
+  content: ' \u2191';
+  color: #3b82f6;
+}
+
+.sortable th[data-dir="desc"]::after {
+  content: ' \u2193';
+  color: #3b82f6;
+}
+
+/* Leaderboard */
+.nav-btn.leaderboard {
+  background: #10b981;
+}
+
+.nav-btn.leaderboard:hover {
+  background: #059669;
+}
+
+.hauler-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hauler-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #334155;
+}
+
+.rank-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.rank-medal.gold {
+  background: #78350f;
+  color: #fcd34d;
+  border: 2px solid #fcd34d;
+}
+
+.rank-medal.silver {
+  background: #374151;
+  color: #d1d5db;
+  border: 2px solid #9ca3af;
+}
+
+.rank-medal.bronze {
+  background: #451a03;
+  color: #f97316;
+  border: 2px solid #f97316;
+}
+
+.leaderboard-top td {
+  border-bottom: 1px solid #334155;
+}
+
+/* Admin status grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #1e293b;
+  border-radius: 6px;
+  border: 1px solid #334155;
+}
+
+.status-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.status-value {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+}
+
+.status-value.status-ok {
+  color: #4ade80;
+}
+
+.status-value.status-off {
+  color: #f87171;
+}
+
+/* ============================================================
+   RESPONSIVE / MOBILE STYLES
+   Appended — do not modify above this line
+   ============================================================ */
+
+/* Utility: horizontally scrollable table wrapper */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+/* ── Tablet: ≤ 1024px ──────────────────────────────────────── */
+@media (max-width: 1024px) {
+
+  /* Stat cards: 2 columns on tablet */
+  .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Wide container: allow horizontal scroll for tables */
+  .container.wide {
+    overflow-x: auto;
+  }
+}
+
+/* ── Mobile: ≤ 768px ───────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* --- Navbar --- */
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .navbar-left,
+  .navbar-right {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .nav-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  /* Push body content down to clear taller stacked navbar */
+  .container {
+    margin-top: 120px;
+  }
+
+  /* --- Container --- */
+  .container {
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;         /* catches any table overflow inside */
+  }
+
+  .container.wide {
+    overflow-x: auto;
+  }
+
+  /* --- Stat cards: 2 columns on mobile --- */
+  .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 16px 0;
+  }
+
+  .stat-card {
+    padding: 12px 8px;
+  }
+
+  .stat-card .stat-number {
+    font-size: 1.5rem;
+  }
+
+  .stat-card .stat-label {
+    font-size: 0.7rem;
+  }
+
+  /* --- Contracts table: scrollable + smaller font --- */
+  .contracts-table {
+    font-size: 0.78rem;
+    min-width: 520px;         /* prevents columns from collapsing too far */
+  }
+
+  .contracts-table th,
+  .contracts-table td {
+    padding: 6px 7px;
+    white-space: nowrap;
+  }
+
+  /* Wrap any element that directly contains a .contracts-table */
+  .contracts-title + .contracts-table,
+  .contracts-title ~ .contracts-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Generic table scroll for all tables inside .container on mobile */
+  .container table,
+  .container .contracts-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* --- Standards card: stack sections vertically --- */
+  .standards-body {
+    flex-direction: column;
+  }
+
+  .standards-section {
+    border-right: none;
+    border-bottom: 1px solid #1e293b;
+    min-width: unset;
+    padding: 12px 14px;
+  }
+
+  .standards-section:last-child {
+    border-bottom: none;
+  }
+
+  /* --- Filters: wrap and smaller buttons --- */
+  .filters {
+    gap: 6px;
+  }
+
+  .filter-btn {
+    padding: 5px 10px;
+    font-size: 0.78rem;
+  }
+
+  /* --- Tabs: wrap on very small screens --- */
+  .tabs {
+    flex-wrap: wrap;
+    gap: 4px;
+    border-bottom: none;
+  }
+
+  .tab {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    border: 1px solid #334155;
+    border-radius: 5px;
+    margin-bottom: 0;
+  }
+
+  .tab.active {
+    border-color: #3b82f6;
+  }
+
+  /* --- Admin grid: single column on mobile --- */
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- Forms: full-width inputs and stacked rows --- */
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .admin-section .form-group input[type="text"],
+  .admin-section .form-group input[type="number"],
+  .admin-section .form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+  }
+
+  .submit-btn {
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+  }
+
+  /* --- Profile section: smaller portrait --- */
+  .profile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .profile img {
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  /* --- Hauler card body: stack on mobile --- */
+  .hauler-card-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .status-form {
+    width: 100%;
+  }
+
+  .status-select {
+    flex: 1;
+  }
+
+  /* --- Page header: stack on mobile --- */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* --- Hauler summary: stack on mobile --- */
+  .hauler-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  /* --- Section header: stack on mobile --- */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  /* --- Tier rows in admin: stack on mobile --- */
+  .tier-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .btn-remove-tier {
+    align-self: flex-start;
+  }
+
+  /* --- Lang switcher: move closer to corner on mobile --- */
+  .lang-switcher {
+    bottom: 12px;
+    right: 12px;
+  }
+}
+
+/* ── Very small screens: ≤ 480px ───────────────────────────── */
+@media (max-width: 480px) {
+
+  .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat-card .stat-number {
+    font-size: 1.2rem;
+  }
+
+  .contracts-table {
+    font-size: 0.72rem;
+  }
+
+  .nav-btn {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+
+  /* Box on login/index page */
+  .box {
+    padding: 24px 16px;
+    margin: 16px;
+  }
+
+  .container {
+    margin-top: 140px;   /* extra room for fully stacked navbar */
+    padding: 10px;
+  }
+}

@@ -5,6 +5,7 @@ const FileStore = require('session-file-store')(session);
 const axios = require('axios');
 const crypto = require('crypto');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const { version } = require('./package.json');
 const db = require('./db');
 const locales = require('./locales');
@@ -16,6 +17,11 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: false }));
+
+// Rate limiting
+app.use(rateLimit({ windowMs: 60 * 1000, max: 60 }));
+app.use('/api/', rateLimit({ windowMs: 60 * 1000, max: 20 }));
+app.use('/admin', rateLimit({ windowMs: 60 * 1000, max: 30 }));
 
 app.use(session({
   store: new FileStore({ path: './sessions', retries: 1 }),
@@ -94,24 +100,34 @@ let _contractsCache = null;
 let _contractsCacheExpiry = 0;
 let _knownContractIds = new Set();
 
-async function notifyDiscord(contract) {
+const DISCORD_EVENTS = {
+  new:       { title: '\u{1F4E6} New Courier Contract',    color: 0xf59e0b },
+  accepted:  { title: '\u{1F6A2} Contract Accepted',       color: 0x3b82f6 },
+  delivered: { title: '\u{2705} Contract Delivered',        color: 0x22c55e },
+  failed:    { title: '\u{274C} Contract Failed/Cancelled', color: 0xef4444 },
+};
+
+async function notifyDiscord(contract, type = 'new') {
   const webhookUrl = getDiscordWebhookUrl();
   if (!webhookUrl || getSetting('discord_notifications') !== 'true') return;
   try {
     const vol = contract.volume ? `\`${contract.volume.toLocaleString()} m³\`` : '—';
     const col = contract.collateral ? `\`${contract.collateral.toLocaleString()} ISK\`` : '—';
     const rew = contract.reward ? `\`${contract.reward.toLocaleString()} ISK\`` : '—';
+    const evt = DISCORD_EVENTS[type] || DISCORD_EVENTS.new;
 
-    // Portrait de l'issuer via EVE image server
-    const portraitUrl = `https://images.evetech.net/characters/${contract.issuer_id}/portrait?size=64`;
+    const portraitId = (type === 'accepted' || type === 'delivered') && contract.acceptor_id
+      ? contract.acceptor_id : contract.issuer_id;
+    const authorName = (type === 'accepted' || type === 'delivered') && contract.acceptor_name
+      ? contract.acceptor_name : contract.issuer_name;
 
     const embed = {
       author: {
-        name: contract.issuer_name,
-        icon_url: portraitUrl,
+        name: authorName,
+        icon_url: `https://images.evetech.net/characters/${portraitId}/portrait?size=64`,
       },
-      title: '\u{1F4E6} New Courier Contract',
-      color: 0xf59e0b,
+      title: evt.title,
+      color: evt.color,
       description: [
         `**\u{1F6EB} Departure**\n${contract.start_name}`,
         `**\u{1F6EC} Arrival**\n${contract.end_name}`,
@@ -124,8 +140,17 @@ async function notifyDiscord(contract) {
       footer: {
         text: `TSLC Logistics \u2022 Contract #${contract.contract_id}`,
       },
-      timestamp: contract.date_issued || new Date().toISOString(),
+      timestamp: new Date().toISOString(),
     };
+
+    // Ajouter le hauler si accepté/livré
+    if ((type === 'accepted' || type === 'delivered') && contract.acceptor_name) {
+      embed.fields.push({ name: '\u{1F464} Hauler', value: contract.acceptor_name, inline: true });
+    }
+    // Ajouter l'issuer si ce n'est pas un nouveau contrat
+    if (type !== 'new') {
+      embed.fields.push({ name: '\u{1F4DD} Issuer', value: contract.issuer_name, inline: true });
+    }
 
     await axios.post(webhookUrl, {
       username: 'TSLC Logistics',
@@ -229,15 +254,23 @@ async function fetchAllianceContracts() {
     end_name:      nameMap[c.end_location_id]   || `#${c.end_location_id}`,
   })).sort((a, b) => new Date(b.date_issued) - new Date(a.date_issued));
 
-  // 5. Détecter et notifier les nouveaux contrats
-  const currentIds = new Set(enriched.map(c => c.contract_id));
+  // 5. Détecter et notifier les changements
   if (_knownContractIds.size > 0) {
-    const newContracts = enriched.filter(c => !_knownContractIds.has(c.contract_id) && c.status === 'outstanding');
-    for (const c of newContracts) {
-      notifyDiscord(c);
+    for (const c of enriched) {
+      // Nouveau contrat
+      if (!_knownContractIds.has(c.contract_id) && c.status === 'outstanding') {
+        notifyDiscord(c, 'new');
+      }
+      // Changement de statut
+      const prev = _contractsCache?.find(p => p.contract_id === c.contract_id);
+      if (prev && prev.status !== c.status) {
+        if (c.status === 'in_progress') notifyDiscord(c, 'accepted');
+        if (['finished', 'finished_issuer', 'finished_contractor'].includes(c.status)) notifyDiscord(c, 'delivered');
+        if (['failed', 'cancelled', 'rejected'].includes(c.status)) notifyDiscord(c, 'failed');
+      }
     }
   }
-  _knownContractIds = currentIds;
+  _knownContractIds = new Set(enriched.map(c => c.contract_id));
 
   _contractsCache       = enriched;
   _contractsCacheExpiry = Date.now() + getCacheDuration();
@@ -451,6 +484,60 @@ app.get('/my-contracts', requireMember, async (req, res) => {
   }
 });
 
+// ── LEADERBOARD ──────────────────────────────────────────────────────────
+
+app.get('/leaderboard', requireMember, async (_req, res) => {
+  try {
+    const contracts = await fetchAllianceContracts();
+    const finished = contracts.filter(c => ['finished','finished_issuer','finished_contractor'].includes(c.status));
+
+    // Stats globales
+    const globalStats = {
+      totalContracts: contracts.length,
+      delivered:      finished.length,
+      totalVolume:    Math.round(finished.reduce((s, c) => s + (c.volume || 0), 0)).toLocaleString(),
+      totalReward:    Math.round(finished.reduce((s, c) => s + (c.reward || 0), 0)).toLocaleString(),
+    };
+
+    // Classement haulers (par contrats livrés)
+    const haulerMap = {};
+    finished.forEach(c => {
+      if (!c.acceptor_id) return;
+      if (!haulerMap[c.acceptor_id]) {
+        haulerMap[c.acceptor_id] = { id: c.acceptor_id, name: c.acceptor_name || `#${c.acceptor_id}`, delivered: 0, volume: 0, reward: 0 };
+      }
+      haulerMap[c.acceptor_id].delivered++;
+      haulerMap[c.acceptor_id].volume += c.volume || 0;
+      haulerMap[c.acceptor_id].reward += c.reward || 0;
+    });
+    const haulers = Object.values(haulerMap)
+      .sort((a, b) => b.delivered - a.delivered)
+      .map(h => ({ ...h, volume: Math.round(h.volume).toLocaleString(), reward: Math.round(h.reward).toLocaleString() }));
+
+    // Top issuers
+    const issuerMap = {};
+    contracts.forEach(c => {
+      if (!issuerMap[c.issuer_id]) {
+        issuerMap[c.issuer_id] = { id: c.issuer_id, name: c.issuer_name, count: 0, volume: 0 };
+      }
+      issuerMap[c.issuer_id].count++;
+      issuerMap[c.issuer_id].volume += c.volume || 0;
+    });
+    const issuers = Object.values(issuerMap)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map(s => ({ ...s, volume: Math.round(s.volume).toLocaleString() }));
+
+    res.render('leaderboard', { globalStats, haulers, issuers });
+  } catch (err) {
+    console.error('[leaderboard] ESI error:', err.message);
+    res.render('leaderboard', {
+      globalStats: { totalContracts: 0, delivered: 0, totalVolume: '0', totalReward: '0' },
+      haulers: [], issuers: []
+    });
+  }
+});
+
 // Redirects anciennes URLs
 app.get('/freight', requireMember, (_req, res) => res.redirect('/logistics'));
 app.get('/hauler', requireMember, (_req, res) => res.redirect('/logistics'));
@@ -506,6 +593,7 @@ app.get('/calculator', (req, res) => {
 app.use(express.json());
 
 app.get('/admin', requireAdmin, (req, res) => {
+  const logs = db.prepare('SELECT * FROM admin_logs ORDER BY created_at DESC LIMIT 20').all();
   res.render('admin', {
     standards:      getFreightStandards(),
     webhookUrl:     getSetting('discord_webhook_url') || '',
@@ -513,8 +601,21 @@ app.get('/admin', requireAdmin, (req, res) => {
     stations:       getCommonStations(),
     cacheDuration:  parseInt(getSetting('cache_duration')) || 5,
     adminIds:       getAdminIds(),
+    logs,
+    cacheStatus: {
+      active: !!_contractsCache,
+      expiry: _contractsCacheExpiry ? new Date(_contractsCacheExpiry).toISOString() : null,
+      count:  _contractsCache ? _contractsCache.length : 0,
+    },
   });
 });
+
+function logAdmin(req, action, details = '') {
+  const char = req.session.character;
+  db.prepare('INSERT INTO admin_logs (char_id, char_name, action, details) VALUES (?, ?, ?, ?)').run(
+    char.id, char.name, action, details
+  );
+}
 
 app.post('/admin/settings', requireAdmin, (req, res) => {
   const { section } = req.body;
@@ -537,31 +638,35 @@ app.post('/admin/settings', requireAdmin, (req, res) => {
     }
     standards.tiers.sort((a, b) => a.maxCollateral - b.maxCollateral);
     setSetting('freight_standards', standards);
+    logAdmin(req, 'update_standards', JSON.stringify(standards));
   }
 
   if (section === 'discord') {
     setSetting('discord_webhook_url', (req.body.webhookUrl || '').trim());
     setSetting('discord_notifications', req.body.discordEnabled === 'on' ? 'true' : 'false');
+    logAdmin(req, 'update_discord');
   }
 
   if (section === 'stations') {
     const raw = (req.body.stations || '').trim();
     const list = raw.split('\n').map(s => s.trim()).filter(Boolean);
     setSetting('common_stations', list);
+    logAdmin(req, 'update_stations', `${list.length} stations`);
   }
 
   if (section === 'cache') {
     const dur = parseInt(req.body.cacheDuration) || 5;
     setSetting('cache_duration', String(dur));
-    // Invalider le cache actuel
     _contractsCache = null;
     _contractsCacheExpiry = 0;
+    logAdmin(req, 'update_cache', `${dur} min`);
   }
 
   if (section === 'admins') {
     const raw = (req.body.adminIds || '').trim();
     const ids = raw.split('\n').map(s => parseInt(s.trim())).filter(Boolean);
     setSetting('admin_ids', ids);
+    logAdmin(req, 'update_admins', ids.join(', '));
   }
 
   res.redirect('/admin');

@@ -56,22 +56,27 @@
       <button class="filter-btn" data-filter="cancelled"><%= t.status.cancelled %> <span class="filter-count"><%= contracts.filter(c => ['cancelled','rejected','failed','deleted','reversed'].includes(c.status)).length %></span></button>
     </div>
 
+    <!-- Recherche -->
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="<%= t.logistics.searchPlaceholder || 'Search...' %>" class="search-input">
+    </div>
+
     <% if (contracts.length === 0) { %>
       <p class="no-contracts"><%= t.freight.noRequests %></p>
     <% } else { %>
-      <table class="contracts-table" id="contracts-table">
+      <table class="contracts-table sortable" id="contracts-table">
         <thead>
           <tr>
-            <th><%= t.freight.colId %></th>
-            <th><%= t.freight.colRequester %></th>
-            <th><%= t.freight.colFrom %></th>
-            <th><%= t.freight.colTo %></th>
-            <th><%= t.freight.colVolume %></th>
-            <th><%= t.freight.colCollateral %></th>
-            <th><%= t.freight.colReward %></th>
-            <th><%= t.freight.colStatus %></th>
-            <th><%= t.freight.colHauler %></th>
-            <th><%= t.logistics.colTimeLeft %></th>
+            <th data-sort="text"><%= t.freight.colId %></th>
+            <th data-sort="text"><%= t.freight.colRequester %></th>
+            <th data-sort="text"><%= t.freight.colFrom %></th>
+            <th data-sort="text"><%= t.freight.colTo %></th>
+            <th data-sort="num"><%= t.freight.colVolume %></th>
+            <th data-sort="num"><%= t.freight.colCollateral %></th>
+            <th data-sort="num"><%= t.freight.colReward %></th>
+            <th data-sort="text"><%= t.freight.colStatus %></th>
+            <th data-sort="text"><%= t.freight.colHauler %></th>
+            <th data-sort="text"><%= t.logistics.colTimeLeft %></th>
           </tr>
         </thead>
         <tbody>
@@ -123,21 +128,51 @@
   <%- include('partials/footer') %>
 
   <script>
-    // Filtrage côté client
+    const activeFilter = () => document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+
+    function applyVisibility() {
+      const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+      const filter = activeFilter();
+      document.querySelectorAll('#contracts-table tbody tr').forEach(row => {
+        const matchFilter = filter === 'all' || row.dataset.status === filter;
+        const matchSearch = !q || row.textContent.toLowerCase().includes(q);
+        row.style.display = (matchFilter && matchSearch) ? '' : 'none';
+      });
+    }
+
+    // Filtrage
     document.getElementById('filters')?.addEventListener('click', e => {
       const btn = e.target.closest('.filter-btn');
       if (!btn) return;
-
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      applyVisibility();
+    });
 
-      const filter = btn.dataset.filter;
-      document.querySelectorAll('#contracts-table tbody tr').forEach(row => {
-        if (filter === 'all' || row.dataset.status === filter) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
+    // Recherche
+    document.getElementById('search-input')?.addEventListener('input', applyVisibility);
+
+    // Tri colonnes
+    document.querySelectorAll('.sortable th[data-sort]').forEach((th, colIdx) => {
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', () => {
+        const tbody = document.querySelector('#contracts-table tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const type = th.dataset.sort;
+        const asc = th.dataset.dir !== 'asc';
+        document.querySelectorAll('.sortable th').forEach(h => delete h.dataset.dir);
+        th.dataset.dir = asc ? 'asc' : 'desc';
+        rows.sort((a, b) => {
+          let va = a.cells[colIdx]?.textContent.trim() || '';
+          let vb = b.cells[colIdx]?.textContent.trim() || '';
+          if (type === 'num') {
+            va = parseFloat(va.replace(/[^0-9.\-]/g, '')) || 0;
+            vb = parseFloat(vb.replace(/[^0-9.\-]/g, '')) || 0;
+            return asc ? va - vb : vb - va;
+          }
+          return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+        });
+        rows.forEach(r => tbody.appendChild(r));
       });
     });
   </script>
