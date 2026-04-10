@@ -23,7 +23,7 @@ Track courier contracts in real-time, calculate pricing per route, manage hauler
 |---|---|---|
 | **Monthly** | 1B ISK / month | Cancel anytime |
 | **Yearly** | 8B ISK / year | Save 4B vs monthly |
-| **Permanent** | 20B ISK | One-time payment, lifetime access |
+| **Permanent** | 40B ISK | One-time payment, lifetime access |
 
 Optional add-ons:
 
