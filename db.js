@@ -141,21 +141,6 @@ seedStmt.run('jump_calculation', 'false');
 seedStmt.run('jump_price_per_m3', '0');
 seedStmt.run('jump_cache_hours', '24');
 
-// Seed route Jita <-> ZT-L3S si aucune route n'existe
-const routeCount = db.prepare('SELECT COUNT(*) as c FROM routes').get().c;
-if (routeCount === 0) {
-  db.prepare(`INSERT INTO routes (point_a, point_b, max_volume, expiration_weeks, days_to_complete, tiers, surcharge, surcharge_label, active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
-    'Jita', 'ZT-L3S',
-    200000, 4, 7,
-    JSON.stringify([{ maxCollateral: 700000000, ratePerM3: 600 }]),
-    10000000, '+10M ISK per contract',
-    1
-  );
-}
-
-// Seed license secret
-seedStmt.run('license_secret', require('crypto').randomBytes(32).toString('hex'));
 
 // Seed settings extras
 seedStmt.run('maintenance_mode', 'false');
@@ -166,8 +151,11 @@ seedStmt.run('discord_event_delivered', 'true');
 seedStmt.run('discord_event_failed', 'true');
 seedStmt.run('theme', 'dark');
 
-// Seed rôle admin
-db.prepare('INSERT OR IGNORE INTO roles (char_id, char_name, role) VALUES (?, ?, ?)').run(2115309720, 'Yashiro Yamamoto', 'admin');
+// Seed admin role from ADMIN_IDS env
+const envAdminIds = (process.env.ADMIN_IDS || '').split(',').map(Number).filter(Boolean);
+envAdminIds.forEach(id => {
+  db.prepare('INSERT OR IGNORE INTO roles (char_id, char_name, role) VALUES (?, ?, ?)').run(id, `Admin #${id}`, 'admin');
+});
 
 // Seed le service token depuis .env si la table est vide
 if (process.env.SERVICE_REFRESH_TOKEN) {

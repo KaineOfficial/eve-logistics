@@ -7,7 +7,7 @@ module.exports = {
       login: 'Login', logout: 'Logout'
     },
     index: {
-      title: 'Tilean Dominion Logistics',
+      title: 'Alliance Logistics',
       subtitle: 'Login required to access the logistics panel',
       loginBtn: 'Login with EVE Online'
     },
@@ -92,7 +92,7 @@ module.exports = {
     },
     error403: {
       title: 'Access Denied',
-      message: "This section is reserved for members of the Tilean Dominion alliance.",
+      message: "This section is reserved for members of the Alliance alliance.",
       back: 'Back to home'
     },
     calc: {
@@ -195,7 +195,7 @@ module.exports = {
       login: 'Se connecter', logout: 'Déconnexion'
     },
     index: {
-      title: 'Tilean Dominion Logistique',
+      title: 'Alliance Logistique',
       subtitle: 'Connexion requise pour accéder au panel logistique',
       loginBtn: 'Se connecter avec EVE Online'
     },
@@ -280,7 +280,7 @@ module.exports = {
     },
     error403: {
       title: 'Accès refusé',
-      message: "Cette section est réservée aux membres de l'alliance Tilean Dominion.",
+      message: "Cette section est réservée aux membres de l'alliance Alliance.",
       back: "Retour à l'accueil"
     },
     calc: {
@@ -383,7 +383,7 @@ module.exports = {
       login: 'Iniciar sesión', logout: 'Cerrar sesión'
     },
     index: {
-      title: 'Tilean Dominion Logística',
+      title: 'Alliance Logística',
       subtitle: 'Inicio de sesión requerido para acceder al panel logístico',
       loginBtn: 'Iniciar sesión con EVE Online'
     },
@@ -468,7 +468,7 @@ module.exports = {
     },
     error403: {
       title: 'Acceso denegado',
-      message: 'Esta sección está reservada para miembros de la alianza Tilean Dominion.',
+      message: 'Esta sección está reservada para miembros de la alianza Alliance.',
       back: 'Volver al inicio'
     },
     calc: {
