@@ -2,7 +2,7 @@
 <html lang="<%= lang %>">
 <head>
   <meta charset="UTF-8">
-  <title>Admin — TSLC</title>
+  <title><%= t.admin.title %> — TSLC</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -10,126 +10,126 @@
 
   <div class="container wide">
     <div class="page-header">
-      <h1>Admin Panel</h1>
+      <h1><%= t.admin.title %></h1>
     </div>
 
     <!-- ═══ HAULING STANDARDS ═══ -->
     <div class="admin-section">
-      <h2 class="admin-section-title">Hauling Standards</h2>
+      <h2 class="admin-section-title"><%= t.admin.standards %></h2>
       <form method="POST" action="/admin/settings">
         <input type="hidden" name="section" value="standards">
         <div class="admin-grid">
           <div class="form-group">
-            <label>Max Volume (m³)</label>
+            <label><%= t.admin.maxVolume %></label>
             <input type="number" name="maxVolume" value="<%= standards.maxVolume %>">
           </div>
           <div class="form-group">
-            <label>Max Collateral (ISK)</label>
+            <label><%= t.admin.maxCollateral %></label>
             <input type="number" name="maxCollateral" value="<%= standards.maxCollateral %>">
           </div>
           <div class="form-group">
-            <label>Expiration (weeks)</label>
+            <label><%= t.admin.expirationWeeks %></label>
             <input type="number" name="expirationWeeks" value="<%= standards.expirationWeeks %>">
           </div>
           <div class="form-group">
-            <label>Days to complete</label>
+            <label><%= t.admin.daysToComplete %></label>
             <input type="number" name="daysToComplete" value="<%= standards.daysToComplete %>">
           </div>
         </div>
 
-        <h3 class="admin-subtitle">Pricing Tiers</h3>
+        <h3 class="admin-subtitle"><%= t.admin.pricingTiers %></h3>
         <div id="tiers-container">
           <% standards.tiers.forEach((tier, i) => { %>
             <div class="tier-row">
               <div class="form-group">
-                <label>Max Collateral (ISK)</label>
+                <label><%= t.admin.tierCollateral %></label>
                 <input type="number" name="tierCollateral" value="<%= tier.maxCollateral %>">
               </div>
               <div class="form-group">
-                <label>Rate (ISK/m³)</label>
+                <label><%= t.admin.tierRate %></label>
                 <input type="number" name="tierRate" value="<%= tier.ratePerM3 %>">
               </div>
               <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
             </div>
           <% }) %>
         </div>
-        <button type="button" class="btn-add" onclick="addTier()">+ Add Tier</button>
+        <button type="button" class="btn-add" onclick="addTier()"><%= t.admin.addTier %></button>
         <div class="form-actions">
-          <button type="submit" class="submit-btn">Save Standards</button>
+          <button type="submit" class="submit-btn"><%= t.admin.saveStandards %></button>
         </div>
       </form>
     </div>
 
     <!-- ═══ DISCORD ═══ -->
     <div class="admin-section">
-      <h2 class="admin-section-title">Discord Notifications</h2>
+      <h2 class="admin-section-title"><%= t.admin.discord %></h2>
       <form method="POST" action="/admin/settings">
         <input type="hidden" name="section" value="discord">
         <div class="form-group">
-          <label>Webhook URL</label>
+          <label><%= t.admin.webhookUrl %></label>
           <input type="text" name="webhookUrl" value="<%= webhookUrl %>" placeholder="https://discord.com/api/webhooks/...">
         </div>
         <div class="form-group checkbox-group">
           <label>
             <input type="checkbox" name="discordEnabled" <%= discordEnabled ? 'checked' : '' %>>
-            Enable notifications for new contracts
+            <%= t.admin.enableDiscord %>
           </label>
         </div>
         <div class="form-actions">
-          <button type="submit" class="submit-btn">Save Discord</button>
+          <button type="submit" class="submit-btn"><%= t.admin.saveDiscord %></button>
         </div>
       </form>
     </div>
 
     <!-- ═══ STATIONS ═══ -->
     <div class="admin-section">
-      <h2 class="admin-section-title">Common Stations (fallback)</h2>
+      <h2 class="admin-section-title"><%= t.admin.stations %></h2>
       <form method="POST" action="/admin/settings">
         <input type="hidden" name="section" value="stations">
         <div class="form-group">
-          <label>One station per line</label>
+          <label><%= t.admin.stationsHint %></label>
           <textarea name="stations" rows="8"><%= stations.join('\n') %></textarea>
         </div>
         <div class="form-actions">
-          <button type="submit" class="submit-btn">Save Stations</button>
+          <button type="submit" class="submit-btn"><%= t.admin.saveStations %></button>
         </div>
       </form>
     </div>
 
     <!-- ═══ CACHE ═══ -->
     <div class="admin-section">
-      <h2 class="admin-section-title">ESI Cache</h2>
+      <h2 class="admin-section-title"><%= t.admin.cache %></h2>
       <form method="POST" action="/admin/settings">
         <input type="hidden" name="section" value="cache">
         <div class="form-group">
-          <label>Cache duration (minutes)</label>
+          <label><%= t.admin.cacheDuration %></label>
           <input type="number" name="cacheDuration" value="<%= cacheDuration %>" min="1" max="60">
         </div>
         <div class="form-actions">
-          <button type="submit" class="submit-btn">Save & Clear Cache</button>
+          <button type="submit" class="submit-btn"><%= t.admin.saveCache %></button>
         </div>
       </form>
     </div>
 
     <!-- ═══ ADMINS ═══ -->
     <div class="admin-section">
-      <h2 class="admin-section-title">Admin Characters</h2>
+      <h2 class="admin-section-title"><%= t.admin.admins %></h2>
       <form method="POST" action="/admin/settings">
         <input type="hidden" name="section" value="admins">
         <div class="form-group">
-          <label>Character IDs (one per line)</label>
+          <label><%= t.admin.adminIds %></label>
           <textarea name="adminIds" rows="4"><%= adminIds.join('\n') %></textarea>
         </div>
-        <p class="admin-hint">Your character ID: <strong><%= character.id %></strong> — Do not remove yourself!</p>
+        <p class="admin-hint"><%= t.admin.adminHint %> <strong><%= character.id %></strong> — <%= t.admin.adminWarn %></p>
         <div class="form-actions">
-          <button type="submit" class="submit-btn">Save Admins</button>
+          <button type="submit" class="submit-btn"><%= t.admin.saveAdmins %></button>
         </div>
       </form>
     </div>
 
     <!-- ═══ ROUTES SPÉCIALES ═══ -->
     <div class="admin-section">
-      <h2 class="admin-section-title">Special Routes</h2>
+      <h2 class="admin-section-title"><%= t.admin.routes %></h2>
 
       <% routes.forEach(route => { %>
         <div class="route-card <%= route.active ? '' : 'route-inactive' %>">
@@ -139,7 +139,7 @@
               <form method="POST" action="/admin/routes/<%= route.id %>/toggle" style="display:inline">
                 <button type="submit" class="btn-toggle <%= route.active ? 'active' : '' %>"><%= route.active ? 'ON' : 'OFF' %></button>
               </form>
-              <form method="POST" action="/admin/routes/<%= route.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this route?')">
+              <form method="POST" action="/admin/routes/<%= route.id %>/delete" style="display:inline" onsubmit="return confirm('<%= t.admin.deleteConfirm %>')">
                 <button type="submit" class="btn-remove-tier">X</button>
               </form>
             </div>
@@ -147,52 +147,52 @@
           <form method="POST" action="/admin/routes/<%= route.id %>/update">
             <div class="admin-grid">
               <div class="form-group">
-                <label>Point A</label>
+                <label><%= t.admin.pointA %></label>
                 <input type="text" name="point_a" value="<%= route.point_a %>">
               </div>
               <div class="form-group">
-                <label>Point B</label>
+                <label><%= t.admin.pointB %></label>
                 <input type="text" name="point_b" value="<%= route.point_b %>">
               </div>
               <div class="form-group">
-                <label>Max Volume (m³)</label>
+                <label><%= t.admin.maxVolume %></label>
                 <input type="number" name="max_volume" value="<%= route.max_volume %>">
               </div>
               <div class="form-group">
-                <label>Expiration (weeks)</label>
+                <label><%= t.admin.expirationWeeks %></label>
                 <input type="number" name="expiration_weeks" value="<%= route.expiration_weeks %>">
               </div>
               <div class="form-group">
-                <label>Days to complete</label>
+                <label><%= t.admin.daysToComplete %></label>
                 <input type="number" name="days_to_complete" value="<%= route.days_to_complete %>">
               </div>
               <div class="form-group">
-                <label>Surcharge (ISK)</label>
+                <label><%= t.admin.surcharge %></label>
                 <input type="number" name="surcharge" value="<%= route.surcharge %>">
               </div>
               <div class="form-group" style="grid-column: span 2">
-                <label>Surcharge label</label>
-                <input type="text" name="surcharge_label" value="<%= route.surcharge_label %>" placeholder="e.g. +10M ISK per contract">
+                <label><%= t.admin.surchargeLabel %></label>
+                <input type="text" name="surcharge_label" value="<%= route.surcharge_label %>">
               </div>
             </div>
-            <h3 class="admin-subtitle">Pricing Tiers</h3>
+            <h3 class="admin-subtitle"><%= t.admin.pricingTiers %></h3>
             <% route.tiers.forEach(tier => { %>
               <div class="tier-row">
                 <div class="form-group">
-                  <label>Max Collateral (ISK)</label>
+                  <label><%= t.admin.tierCollateral %></label>
                   <input type="number" name="tierCollateral" value="<%= tier.maxCollateral %>">
                 </div>
                 <div class="form-group">
-                  <label>Rate (ISK/m³)</label>
+                  <label><%= t.admin.tierRate %></label>
                   <input type="number" name="tierRate" value="<%= tier.ratePerM3 %>">
                 </div>
                 <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
               </div>
             <% }) %>
             <div class="route-tiers-<%= route.id %>"></div>
-            <button type="button" class="btn-add" onclick="addRouteTier(<%= route.id %>)">+ Add Tier</button>
+            <button type="button" class="btn-add" onclick="addRouteTier(<%= route.id %>)"><%= t.admin.addTier %></button>
             <div class="form-actions">
-              <button type="submit" class="submit-btn">Save Route</button>
+              <button type="submit" class="submit-btn"><%= t.admin.saveRoute %></button>
             </div>
           </form>
         </div>
@@ -200,55 +200,55 @@
 
       <!-- New route form -->
       <details class="new-route-details">
-        <summary class="btn-add" style="margin-top:16px;display:inline-block;cursor:pointer">+ Add New Route</summary>
+        <summary class="btn-add" style="margin-top:16px;display:inline-block;cursor:pointer"><%= t.admin.addRoute %></summary>
         <form method="POST" action="/admin/routes" style="margin-top:12px">
           <div class="admin-grid">
             <div class="form-group">
-              <label>Point A</label>
-              <input type="text" name="point_a" placeholder="e.g. Jita" required>
+              <label><%= t.admin.pointA %></label>
+              <input type="text" name="point_a" required>
             </div>
             <div class="form-group">
-              <label>Point B</label>
-              <input type="text" name="point_b" placeholder="e.g. ZT-L3S" required>
+              <label><%= t.admin.pointB %></label>
+              <input type="text" name="point_b" required>
             </div>
             <div class="form-group">
-              <label>Max Volume (m³)</label>
+              <label><%= t.admin.maxVolume %></label>
               <input type="number" name="max_volume" value="200000">
             </div>
             <div class="form-group">
-              <label>Expiration (weeks)</label>
+              <label><%= t.admin.expirationWeeks %></label>
               <input type="number" name="expiration_weeks" value="4">
             </div>
             <div class="form-group">
-              <label>Days to complete</label>
+              <label><%= t.admin.daysToComplete %></label>
               <input type="number" name="days_to_complete" value="7">
             </div>
             <div class="form-group">
-              <label>Surcharge (ISK)</label>
+              <label><%= t.admin.surcharge %></label>
               <input type="number" name="surcharge" value="0">
             </div>
             <div class="form-group" style="grid-column: span 2">
-              <label>Surcharge label</label>
-              <input type="text" name="surcharge_label" placeholder="e.g. +10M ISK per contract">
+              <label><%= t.admin.surchargeLabel %></label>
+              <input type="text" name="surcharge_label">
             </div>
           </div>
-          <h3 class="admin-subtitle">Pricing Tiers</h3>
+          <h3 class="admin-subtitle"><%= t.admin.pricingTiers %></h3>
           <div id="new-route-tiers">
             <div class="tier-row">
               <div class="form-group">
-                <label>Max Collateral (ISK)</label>
+                <label><%= t.admin.tierCollateral %></label>
                 <input type="number" name="tierCollateral" value="0">
               </div>
               <div class="form-group">
-                <label>Rate (ISK/m³)</label>
+                <label><%= t.admin.tierRate %></label>
                 <input type="number" name="tierRate" value="0">
               </div>
               <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
             </div>
           </div>
-          <button type="button" class="btn-add" onclick="addNewRouteTier()">+ Add Tier</button>
+          <button type="button" class="btn-add" onclick="addNewRouteTier()"><%= t.admin.addTier %></button>
           <div class="form-actions">
-            <button type="submit" class="submit-btn">Create Route</button>
+            <button type="submit" class="submit-btn"><%= t.admin.createRoute %></button>
           </div>
         </form>
       </details>
@@ -256,51 +256,51 @@
 
     <!-- ═══ JUMP CALCULATION ═══ -->
     <div class="admin-section">
-      <h2 class="admin-section-title">Jump Calculation</h2>
+      <h2 class="admin-section-title"><%= t.admin.jumps %></h2>
       <form method="POST" action="/admin/settings">
         <input type="hidden" name="section" value="jumps">
         <div class="form-group checkbox-group">
           <label>
             <input type="checkbox" name="jumpEnabled" <%= jumpEnabled ? 'checked' : '' %>>
-            Enable jump calculation in calculator
+            <%= t.admin.enableJumps %>
           </label>
         </div>
         <div class="admin-grid">
           <div class="form-group">
-            <label>Extra price per m³ per jump (ISK)</label>
+            <label><%= t.admin.jumpPrice %></label>
             <input type="number" name="jumpPrice" value="<%= jumpPrice %>" min="0">
           </div>
           <div class="form-group">
-            <label>Jump cache duration (hours)</label>
+            <label><%= t.admin.jumpCacheHours %></label>
             <input type="number" name="jumpCacheHours" value="<%= jumpCacheHours %>" min="1" max="168">
           </div>
         </div>
         <div class="form-actions">
-          <button type="submit" class="submit-btn">Save Jump Settings</button>
+          <button type="submit" class="submit-btn"><%= t.admin.saveJumps %></button>
         </div>
       </form>
     </div>
 
     <!-- ═══ STATUS ═══ -->
     <div class="admin-section">
-      <h2 class="admin-section-title">System Status</h2>
+      <h2 class="admin-section-title"><%= t.admin.status %></h2>
       <div class="status-grid">
         <div class="status-item">
-          <span class="status-label">ESI Cache</span>
+          <span class="status-label"><%= t.admin.esiCache %></span>
           <span class="status-value <%= cacheStatus.active ? 'status-ok' : 'status-off' %>">
-            <%= cacheStatus.active ? 'Active' : 'Inactive' %>
+            <%= cacheStatus.active ? t.admin.active : t.admin.inactive %>
           </span>
         </div>
         <div class="status-item">
-          <span class="status-label">Contracts cached</span>
+          <span class="status-label"><%= t.admin.contractsCached %></span>
           <span class="status-value"><%= cacheStatus.count %></span>
         </div>
         <div class="status-item">
-          <span class="status-label">Cache expires</span>
+          <span class="status-label"><%= t.admin.cacheExpires %></span>
           <span class="status-value"><%= cacheStatus.expiry ? new Date(cacheStatus.expiry).toLocaleString() : '—' %></span>
         </div>
         <div class="status-item">
-          <span class="status-label">App version</span>
+          <span class="status-label"><%= t.admin.appVersion %></span>
           <span class="status-value"><%= version %></span>
         </div>
       </div>
@@ -308,17 +308,17 @@
 
     <!-- ═══ ACTIVITY LOGS ═══ -->
     <div class="admin-section">
-      <h2 class="admin-section-title">Activity Log</h2>
+      <h2 class="admin-section-title"><%= t.admin.activityLog %></h2>
       <% if (logs.length === 0) { %>
-        <p class="no-contracts">No activity yet.</p>
+        <p class="no-contracts"><%= t.admin.noActivity %></p>
       <% } else { %>
         <table class="contracts-table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Admin</th>
-              <th>Action</th>
-              <th>Details</th>
+              <th><%= t.admin.logDate %></th>
+              <th><%= t.admin.logAdmin %></th>
+              <th><%= t.admin.logAction %></th>
+              <th><%= t.admin.logDetails %></th>
             </tr>
           </thead>
           <tbody>
@@ -345,8 +345,8 @@
       const row = document.createElement('div');
       row.className = 'tier-row';
       row.innerHTML = `
-        <div class="form-group"><label>Max Collateral (ISK)</label><input type="number" name="tierCollateral" value="0"></div>
-        <div class="form-group"><label>Rate (ISK/m³)</label><input type="number" name="tierRate" value="0"></div>
+        <div class="form-group"><label><%= t.admin.tierCollateral %></label><input type="number" name="tierCollateral" value="0"></div>
+        <div class="form-group"><label><%= t.admin.tierRate %></label><input type="number" name="tierRate" value="0"></div>
         <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
       `;
       container.appendChild(row);
@@ -357,8 +357,8 @@
       const row = document.createElement('div');
       row.className = 'tier-row';
       row.innerHTML = `
-        <div class="form-group"><label>Max Collateral (ISK)</label><input type="number" name="tierCollateral" value="0"></div>
-        <div class="form-group"><label>Rate (ISK/m³)</label><input type="number" name="tierRate" value="0"></div>
+        <div class="form-group"><label><%= t.admin.tierCollateral %></label><input type="number" name="tierCollateral" value="0"></div>
+        <div class="form-group"><label><%= t.admin.tierRate %></label><input type="number" name="tierRate" value="0"></div>
         <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>
       `;
       container.appendChild(row);
@@ -370,11 +370,11 @@
       row.className = 'tier-row';
       row.innerHTML = `
         <div class="form-group">
-          <label>Max Collateral (ISK)</label>
+          <label><%= t.admin.tierCollateral %></label>
           <input type="number" name="tierCollateral" value="0">
         </div>
         <div class="form-group">
-          <label>Rate (ISK/m³)</label>
+          <label><%= t.admin.tierRate %></label>
           <input type="number" name="tierRate" value="0">
         </div>
         <button type="button" class="btn-remove-tier" onclick="this.parentElement.remove()">X</button>

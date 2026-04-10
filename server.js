@@ -376,7 +376,7 @@ app.get('/', async (req, res) => {
       stats.outstanding = contracts.filter(c => c.status === 'outstanding').length;
       stats.in_progress = contracts.filter(c => c.status === 'in_progress').length;
       stats.finished    = contracts.filter(c => ['finished', 'finished_issuer', 'finished_contractor'].includes(c.status)).length;
-      stats.cancelled   = contracts.filter(c => ['cancelled', 'rejected', 'failed'].includes(c.status)).length;
+      stats.cancelled   = contracts.filter(c => ['cancelled', 'rejected', 'failed', 'deleted', 'reversed'].includes(c.status)).length;
       myContracts       = contracts.filter(c => c.issuer_id === char.id).slice(0, 5);
     } catch (err) {
       console.error('[dashboard] ESI error:', err.message);
