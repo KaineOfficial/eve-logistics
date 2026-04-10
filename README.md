@@ -115,4 +115,4 @@ Without a valid license, the panel will not start.
 
 Modifying, reverse-engineering, or circumventing the license system is prohibited.
 
-Contact **Yashiro Yamamoto** in-game or via Discord for pricing and licensing.
+Contact **Yashiro Yamamoto** in-game or via Discord : "kaine_off" for pricing and licensing.
