@@ -38,6 +38,7 @@
         </div>
       </div>
 
+      <% if (isHauler) { %>
       <div class="hauler-summary">
         <div>
           <div class="hauler-summary-text"><%= t.dashboard.haulerActive %></div>
@@ -45,6 +46,7 @@
         </div>
         <a href="/logistics" class="nav-btn hauler"><%= t.dashboard.haulerBtn %></a>
       </div>
+      <% } %>
 
       <div class="section-header">
         <h2><%= t.dashboard.myRequests %></h2>
