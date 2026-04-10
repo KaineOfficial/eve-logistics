@@ -310,21 +310,19 @@ app.get('/callback', async (req, res) => {
 
 // ── LOGISTICS (regroupe Freight + Hauler) ────────────────────────────────
 
-app.get('/logistics', requireMember, async (req, res) => {
-  const tab = req.query.tab === 'hauler' ? 'hauler' : 'freight';
+app.get('/logistics', requireMember, async (_req, res) => {
   try {
     const contracts = await fetchAllianceContracts();
-    const active    = contracts.filter(c => ['outstanding', 'in_progress'].includes(c.status));
-    res.render('logistics', { contracts, active, standards: FREIGHT_STANDARDS, tab });
+    res.render('logistics', { contracts, standards: FREIGHT_STANDARDS });
   } catch (err) {
     console.error('[logistics] ESI error:', err.message);
-    res.render('logistics', { contracts: [], active: [], standards: FREIGHT_STANDARDS, tab });
+    res.render('logistics', { contracts: [], standards: FREIGHT_STANDARDS });
   }
 });
 
 // Redirects anciennes URLs
 app.get('/freight', requireMember, (_req, res) => res.redirect('/logistics'));
-app.get('/hauler', requireMember, (_req, res) => res.redirect('/logistics?tab=hauler'));
+app.get('/hauler', requireMember, (_req, res) => res.redirect('/logistics'));
 
 // ── RECHERCHE STATIONS ───────────────────────────────────────────────────
 

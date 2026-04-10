@@ -12,8 +12,8 @@ module.exports = {
     },
     logistics: {
       title: 'Logistics',
-      tabFreight: 'Contracts',
-      tabHauler: 'Hauler Panel',
+      filterAll: 'All',
+      colTimeLeft: 'Time left',
     },
     dashboard: {
       title: 'Dashboard',
@@ -97,8 +97,8 @@ module.exports = {
     },
     logistics: {
       title: 'Logistique',
-      tabFreight: 'Contrats',
-      tabHauler: 'Panel Hauler',
+      filterAll: 'Tous',
+      colTimeLeft: 'Temps restant',
     },
     dashboard: {
       title: 'Dashboard',
@@ -182,8 +182,8 @@ module.exports = {
     },
     logistics: {
       title: 'Logística',
-      tabFreight: 'Contratos',
-      tabHauler: 'Panel de transportista',
+      filterAll: 'Todos',
+      colTimeLeft: 'Tiempo restante',
     },
     dashboard: {
       title: 'Panel de control',

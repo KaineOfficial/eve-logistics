@@ -815,3 +815,55 @@ td.label {
   border-bottom-color: #3b82f6;
   background: none;
 }
+
+/* Status filters */
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 20px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-btn:hover {
+  border-color: #3b82f6;
+  color: #e2e8f0;
+}
+
+.filter-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.filter-count {
+  background: rgba(255,255,255,0.15);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+}
+
+.filter-btn.active .filter-count {
+  background: rgba(255,255,255,0.25);
+}
+
+/* Time left column */
+.time-left {
+  color: #fbbf24;
+  font-weight: 500;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
