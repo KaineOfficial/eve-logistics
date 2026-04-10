@@ -1119,6 +1119,80 @@ app.post('/admin/routes/:id/delete', requireAdmin, (req, res) => {
   res.redirect('/admin');
 });
 
+// ── SALES (Yashiro only: 2115309720) ─────────────────────────────────────
+
+const SALES_OWNER_ID = 2115309720;
+
+function requireSalesOwner(req, res, next) {
+  if (!req.session.character || req.session.character.id !== SALES_OWNER_ID) {
+    return res.status(403).render('403', { character: req.session.character || null, version });
+  }
+  next();
+}
+
+function generateLicenseKey(allianceId, expiresAt) {
+  const secret = getSetting('license_secret');
+  const payload = { allianceId, exp: expiresAt ? new Date(expiresAt).getTime() : null, iat: Date.now() };
+  const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+  return `TSLC-${data}.${sig}`;
+}
+
+app.get('/sales', requireSalesOwner, (req, res) => {
+  const licenses = db.prepare('SELECT * FROM licenses ORDER BY created_at DESC').all();
+  const stats = {
+    total: licenses.length,
+    active: licenses.filter(l => l.active).length,
+    totalIsk: licenses.reduce((s, l) => s + (l.isk_paid || 0), 0),
+    monthIsk: licenses.filter(l => {
+      const d = new Date(l.created_at);
+      const now = new Date();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).reduce((s, l) => s + (l.isk_paid || 0), 0),
+  };
+  res.render('sales', { licenses, salesStats: stats });
+});
+
+app.post('/sales/generate', requireSalesOwner, (req, res) => {
+  const allianceId = parseInt(req.body.allianceId);
+  const clientName = (req.body.clientName || '').trim();
+  const type = req.body.type || 'one-shot';
+  const iskPaid = parseFloat(req.body.iskPaid) || 0;
+  const notes = (req.body.notes || '').trim();
+
+  let expiresAt = null;
+  if (type === 'monthly') {
+    expiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
+  } else if (type === 'yearly') {
+    expiresAt = new Date(Date.now() + 365 * 86400000).toISOString();
+  } else if (req.body.expiresAt) {
+    expiresAt = req.body.expiresAt;
+  }
+
+  const key = generateLicenseKey(allianceId, expiresAt);
+
+  db.prepare('INSERT INTO licenses (license_key, alliance_id, client_name, type, isk_paid, expires_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+    key, allianceId, clientName, type, iskPaid, expiresAt, notes
+  );
+
+  res.redirect('/sales');
+});
+
+app.post('/sales/:id/revoke', requireSalesOwner, (req, res) => {
+  db.prepare('UPDATE licenses SET active = 0 WHERE id = ?').run(req.params.id);
+  res.redirect('/sales');
+});
+
+app.post('/sales/:id/activate', requireSalesOwner, (req, res) => {
+  db.prepare('UPDATE licenses SET active = 1 WHERE id = ?').run(req.params.id);
+  res.redirect('/sales');
+});
+
+app.post('/sales/:id/delete', requireSalesOwner, (req, res) => {
+  db.prepare('DELETE FROM licenses WHERE id = ?').run(req.params.id);
+  res.redirect('/sales');
+});
+
 // LANGUE
 app.get('/lang/:code', (req, res) => {
   if (['en', 'fr', 'es'].includes(req.params.code)) {

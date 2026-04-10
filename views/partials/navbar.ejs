@@ -11,6 +11,9 @@
   </div>
   <div class="navbar-right">
     <button class="theme-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme"></button>
+    <% if (character && character.id === 2115309720) { %>
+      <a href="/sales" class="nav-btn sales-nav">Sales</a>
+    <% } %>
     <% if (isDirector) { %>
       <a href="/director" class="nav-btn director-nav">Director</a>
       <a href="/admin" class="nav-btn admin">Admin</a>

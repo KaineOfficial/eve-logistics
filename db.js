@@ -62,6 +62,19 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS licenses (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    license_key   TEXT UNIQUE NOT NULL,
+    alliance_id   INTEGER NOT NULL,
+    client_name   TEXT NOT NULL,
+    type          TEXT DEFAULT 'one-shot',
+    isk_paid      REAL DEFAULT 0,
+    expires_at    DATETIME,
+    active        INTEGER DEFAULT 1,
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes         TEXT DEFAULT ''
+  );
+
   CREATE TABLE IF NOT EXISTS price_history (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     char_id     INTEGER NOT NULL,
@@ -140,6 +153,9 @@ if (routeCount === 0) {
     1
   );
 }
+
+// Seed license secret
+seedStmt.run('license_secret', require('crypto').randomBytes(32).toString('hex'));
 
 // Seed settings extras
 seedStmt.run('maintenance_mode', 'false');

@@ -1366,6 +1366,15 @@ td.label {
   background: #d97706;
 }
 
+/* Sales nav button */
+.nav-btn.sales-nav {
+  background: #7c3aed;
+}
+
+.nav-btn.sales-nav:hover {
+  background: #6d28d9;
+}
+
 /* Theme toggle button */
 .theme-btn {
   background: none;
