@@ -1,5 +1,7 @@
 # EVE Online Logistics Panel
 
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white) ![Express](https://img.shields.io/badge/Express-000000?style=flat&logo=express&logoColor=white) ![EJS](https://img.shields.io/badge/EJS-B4CA65?style=flat&logo=ejs&logoColor=black) ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white) ![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=flat&logo=chartdotjs&logoColor=white) ![Discord](https://img.shields.io/badge/Discord_Webhooks-5865F2?style=flat&logo=discord&logoColor=white)
+
 A complete logistics management panel for EVE Online alliances.  
 Track courier contracts in real-time, calculate pricing per route, manage haulers, and receive Discord notifications.
 
@@ -317,16 +319,5 @@ Admin Panel :
 <img width="1907" height="906" alt="Capture d’écran 2026-04-10 125104" src="https://github.com/user-attachments/assets/0a1bc473-7dc7-4973-b790-ea0de61f4fd7" />
 <img width="1909" height="906" alt="Capture d’écran 2026-04-10 125132" src="https://github.com/user-attachments/assets/b8b97321-137a-406f-89e3-4c65922afeeb" />
 <img width="1912" height="907" alt="Capture d’écran 2026-04-10 125200" src="https://github.com/user-attachments/assets/7ae78a11-aecd-42b5-aaa3-de586f85da4c" />
-
-
-
-
-
-
-
-
-
-
-
 
 
